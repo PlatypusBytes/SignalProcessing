@@ -1,13 +1,13 @@
 import numpy as np
 import matplotlib.pylab as plt
-from SignalProcessing import processing, window
+from SignalProcessing import signal_tools, window
 
 
 def signal_ex():
     x = np.linspace(0, 100, 1000)
     y = np.sin(20 * x) + np.random.random(len(x)) * 0.01
 
-    sig = processing.Signal(x, y)
+    sig = signal_tools.Signal(x, y)
     sig.fft()
     sig.inv_fft()
 
@@ -29,7 +29,7 @@ def integration_ex():
     x = np.sin(20 * time)
 
     # check window integration
-    sig = processing.Signal(time, x, FS=1 / time[1])
+    sig = signal_tools.Signal(time, x, FS=1 / time[1])
     sig.integrate(hp=True)
 
     plt.plot(time, -np.cos(20 * time) / 20)
@@ -44,12 +44,12 @@ def window_ex():
     sig = np.sin(20 * time)
 
     # check window fft
-    s = processing.Signal(time, sig, FS=1 / time[1])
+    s = signal_tools.Signal(time, sig, FS=1 / time[1])
     s.fft()
     plt.plot(s.frequency, s.amplitude)
 
     w = window.Window(time, sig, 4096, FS=1/time[1])
-    w.moving_fft()
+    w.fft()
     plt.plot(w.frequency, np.mean(w.signal_fft, axis=1))
     plt.xlim(0, 10)
     plt.grid()
@@ -57,7 +57,7 @@ def window_ex():
 
     # check window integration
     w = window.Window(time, sig, 512, FS=1/time[1])
-    w.moving_integration()
+    w.integration()
 
     plt.plot(time, -np.cos(20 * time) / 20)
     plt.plot(w.time, w.signal_int)

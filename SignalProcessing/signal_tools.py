@@ -37,12 +37,7 @@ class Signal:
         # log properties
         self.log = {"FFT": False,
                     "IFFT": False,
-                    "Integration": {"Integration": False,
-                                    "Order": 0,
-                                    "Baseline": False,
-                                    "Moving": False,
-                                    "High-pass": False,
-                                    },
+                    "Integration": False,
                     "Filter": False}
 
         return
@@ -129,7 +124,15 @@ class Signal:
         :param fpass: cut off frequency [Hz]. only used if hp=True (optional: default 0.5)
         :param n: order of the filter. only used if hp=True (optional: default 6)
         """
+        # if log is False create dict for integration
+        if not self.log["Integration"]:
+            self.log["Integration"] = {"Integration": False,
+                                       "Order": 0,
+                                       "Baseline": False,
+                                       "Moving": False,
+                                       "High-pass": False}
 
+        # rules allowed
         rules = ["trap"]
         # check if integration rule is supported
         if rule not in rules:
@@ -175,6 +178,14 @@ class Signal:
         :param rs: minimum attenuation required in the stop band. Specified in decibels, as a positive number
                    default is 60
         """
+
+        # if log is False create dict for filter
+        if not self.log["Filter"]:
+            self.log["Filter"] = {"Type": [],
+                                  "Cut-off": []
+                                  }
+
+        # types allowed
         types = ["lowpass", "highpass"]
 
         # check if filter type is supported
@@ -188,6 +199,10 @@ class Signal:
         self.signal = self.signal[::-1]
         self.signal = signal.sosfilt(sos, self.signal)
         self.signal = self.signal[::-1]
+
+        # add to log
+        self.log["Filter"]["Type"].append(type)
+        self.log["Filter"]["Cut-off"].append(Fpass)
 
         return
 

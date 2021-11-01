@@ -1,7 +1,7 @@
 import numpy as np
 from scipy import signal
 import sys
-from . import processing
+from . import signal_tools
 
 
 class Window:
@@ -13,7 +13,7 @@ class Window:
         @param time: Time
         @param sig: Signal to be processed
         @param M: Window length
-        @param window_type: window type (default Hanning)
+        @param window_type: window type (default: Hanning)
         @param FS: Acquisition frequency (default False - It is computed based on time)
         """
         self.time = time
@@ -48,7 +48,7 @@ class Window:
 
         return
 
-    def moving_fft(self):
+    def fft(self):
         """
         Produces a moving FFT
         """
@@ -59,7 +59,7 @@ class Window:
             signal_w = self.window * self.signal[int(idx_i): int(idx_i + self.M)]
 
             # fft window signal
-            sig = processing.Signal(self.time[int(idx_i): int(idx_i + self.M)], signal_w)
+            sig = signal_tools.Signal(self.time[int(idx_i): int(idx_i + self.M)], signal_w)
             sig.fft(window=self.window)
 
             # add to result
@@ -69,7 +69,7 @@ class Window:
         self.frequency = sig.frequency
         return
 
-    def moving_integration(self):
+    def integration(self):
         # considering half overlap
         for i in range(self.nb_windows):
             idx_i = i * self.M / 2
@@ -77,9 +77,12 @@ class Window:
             signal_w = self.window * self.signal[int(idx_i): int(idx_i + self.M)]
 
             # fft window signal
-            sig = processing.Signal(self.time[int(idx_i): int(idx_i + self.M)], signal_w, FS=self.Fs)
+            sig = signal_tools.Signal(self.time[int(idx_i): int(idx_i + self.M)], signal_w, FS=self.Fs)
             sig.integrate()
 
             # add to result
             self.signal_int[int(idx_i):int(idx_i + self.M)] += sig.signal
+        return
+
+    def filter(self):
         return
