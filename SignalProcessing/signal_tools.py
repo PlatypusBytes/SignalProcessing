@@ -14,8 +14,8 @@ class Signal:
         :param sig: Signal vector
         :param FS: Acquisition frequency (optional: default False. FS is computed based on time)
         """
-        self.signal_org = sig  # signal original
         self.signal = sig  # signal to be processed
+        self.signal_org = np.copy(sig)  # signal original
         self.time = time  # time
 
         # parameters FFT
@@ -37,6 +37,7 @@ class Signal:
         # log properties
         self.log = {"FFT": False,
                     "IFFT": False,
+                    "PSD": False,
                     "Integration": False,
                     "Filter": False}
 
@@ -48,7 +49,7 @@ class Signal:
         """
         return f"LOG description\n{self.log}"
 
-    def fft(self, nb_points=False, window="rectangular"):
+    def fft(self, nb_points=False, window="rectangular", normalise=True):
         """
         FFT of signal
 
@@ -204,5 +205,8 @@ class Signal:
         self.log["Filter"]["Type"].append(type)
         self.log["Filter"]["Cut-off"].append(Fpass)
 
+        return
+
+    def psd(self):
         return
 
