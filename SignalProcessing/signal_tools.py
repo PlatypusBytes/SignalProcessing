@@ -165,7 +165,7 @@ class Signal:
         self.log["Integration"]["Order"] += 1
         return
 
-    def filter(self, Fpass, N, type="lowpass", rp=0.01, rs=60):
+    def filter(self, Fpass, N, typ="lowpass", rp=0.01, rs=60):
         """
         Filter signal
 
@@ -190,10 +190,10 @@ class Signal:
         types = ["lowpass", "highpass"]
 
         # check if filter type is supported
-        if type not in types:
-            sys.exit(f"ERROR: Type filter '{type}' not available")
+        if typ not in types:
+            sys.exit(f"ERROR: Type filter '{typ}' not available")
 
-        z, p, k = signal.ellip(N, rp, rs, Fpass / (self.Fs / 2), btype=type, output='zpk')
+        z, p, k = signal.ellip(N, rp, rs, Fpass / (self.Fs / 2), btype=typ, output='zpk')
         sos = signal.zpk2sos(z, p, k)
 
         self.signal = signal.sosfilt(sos, self.signal)
@@ -202,7 +202,7 @@ class Signal:
         self.signal = self.signal[::-1]
 
         # add to log
-        self.log["Filter"]["Type"].append(type)
+        self.log["Filter"]["Type"].append(typ)
         self.log["Filter"]["Cut-off"].append(Fpass)
 
         return

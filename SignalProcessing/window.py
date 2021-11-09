@@ -9,7 +9,8 @@ WINDOWS_TYPES = ["Hann", "Barthann", "Bartlett", "Triang"]
 
 
 class Window(signal_tools.Signal):
-    def __init__(self, time, sig, M, window_type="Hann"):
+    def __init__(self, time: np.ndarray, sig: np.ndarray, M: int,
+                 window_type: str = "Hann", FS: [bool, int] = False):
         """
         Processes a signal with a moving window.
         Only windows with 1/2 overlap are allowed.
@@ -20,7 +21,7 @@ class Window(signal_tools.Signal):
         @param window_type: window type (default: Hanning)
         @param FS: Acquisition frequency (default False - It is computed based on time)
         """
-        super(Window, self).__init__(time, sig)
+        super(Window, self).__init__(time, sig, FS=FS)
 
         self.M = M
         if M % 2 != 0:
@@ -67,7 +68,7 @@ class Window(signal_tools.Signal):
         self.spectrogram_time = []  # time for spectrogram
         return
 
-    def fft(self, length=False):
+    def fft_w(self, length: [bool, int] = False) -> None:
         """
         Produces a moving FFT
         """
@@ -107,7 +108,9 @@ class Window(signal_tools.Signal):
         self.log["FFT"] = True
         return
 
-    def integration(self, rule="trap", baseline=False, moving=False, hp=False, ini_cond=False, fpass=0.5, n=6):
+    def integrate_w(self, rule: str = "trap",
+                    baseline: bool = False, moving: bool = False, hp: bool = False, ini_cond: bool = False,
+                    fpass: float = 0.5, n: int = 6) -> None:
         """
         Numerical integration of signal with moving window
 
@@ -150,7 +153,7 @@ class Window(signal_tools.Signal):
 
         return
 
-    def filter(self, Fpass, N, type="lowpass", rp=0.01, rs=60):
+    def filter_w(self, Fpass: int, N: int, typ: str = "lowpass", rp: float = 0.01, rs: int = 60) -> None:
         """
         Filter signal with window
 
@@ -158,7 +161,7 @@ class Window(signal_tools.Signal):
         ----------
         :param Fpass: cut off frequency [Hz]
         :param N: order of the filter
-        :param type: type of the filter (optional: default lowpass)
+        :param typ: type of the filter (optional: default lowpass)
         :param rp: maximum ripple allowed below unity gain in the passband. Specified in decibels, as a positive number
                    default is 0.01
         :param rs: minimum attenuation required in the stop band. Specified in decibels, as a positive number
@@ -178,7 +181,7 @@ class Window(signal_tools.Signal):
 
             # fft window signal
             sig = signal_tools.Signal(self.time[idx_ini: idx_end], signal_w, FS=self.Fs)
-            sig.filter(Fpass, N, type=type, rp=rp, rs=rs)
+            sig.filter(Fpass, N, typ=typ, rp=rp, rs=rs)
 
             # add to result
             new_signal[idx_ini: idx_end] += sig.signal
@@ -190,7 +193,7 @@ class Window(signal_tools.Signal):
         self.log["Filter"] = sig.log["Filter"]
         return
 
-    def plot_spectrogram(self, output_folder="./"):
+    def plot_spectrogram(self, output_folder: str = "./") -> None:
         """
         Creates spectrogram plot
 
