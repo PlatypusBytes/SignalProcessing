@@ -4,7 +4,7 @@ from scipy import integrate, signal
 
 
 class Signal:
-    def __init__(self, time, sig, FS=False):
+    def __init__(self, time: np.ndarray, sig: np.ndarray, FS: [bool, int] = False) -> None:
         """
         Signal processing object
 
@@ -49,7 +49,7 @@ class Signal:
         """
         return f"LOG description\n{self.log}"
 
-    def fft(self, nb_points=False, window="rectangular", normalise=True):
+    def fft(self, nb_points: [bool, int] = False, window: str = "rectangular") -> None:
         """
         FFT of signal
 
@@ -111,7 +111,9 @@ class Signal:
         self.log["IFFT"] = True
         return
 
-    def integrate(self, rule="trap", baseline=False, moving=False, hp=False, ini_cond=False, fpass=0.5, n=6):
+    def integrate(self, rule: str = "trap",
+                    baseline: bool = False, moving: bool = False, hp: bool = False, ini_cond: bool = False,
+                    fpass: float = 0.5, n: int = 6) -> None:
         """
         Numerical integration of signal
 
@@ -165,7 +167,7 @@ class Signal:
         self.log["Integration"]["Order"] += 1
         return
 
-    def filter(self, Fpass, N, typ="lowpass", rp=0.01, rs=60):
+    def filter(self, Fpass: float, N: int, typ: str = "lowpass", rp: float = 0.01, rs: int = 60):
         """
         Filter signal
 
