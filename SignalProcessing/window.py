@@ -65,6 +65,7 @@ class Window(signal_tools.Signal):
             self.signal[:len(sig)] = sig
 
         # additional variables
+        self.time_org = time  # original time definition
         self.int_order = 0  # integration order
         self.spectrogram = []  # spectrogram
         self.spectrogram_time = []  # time for spectrogram
