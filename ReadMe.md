@@ -18,13 +18,14 @@ The supported operations are:
 * Integration
 
 ## window
-Creates a moving window over a time history signal and performs operations.
-The supported operations are:
+Creates a moving window over a time history signal and performs operations. 
+The available windows have an overlap of 50% (currently supported: "Hann", "Barthann", "Bartlett" and "Triang"). 
+The supported operations for signal processing are:
 
 * FFT
 * Integration
+* Filter
+* Plot spectrogram
 
 ## spectral subtraction
 To be done
-
-
