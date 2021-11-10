@@ -163,7 +163,7 @@ class Signal:
 
         # high pass filter
         if hp:
-            self.filter(fpass, n, type="highpass")
+            self.filter(fpass, n, typ="highpass")
             self.log["High-pass"] = True
 
         # log

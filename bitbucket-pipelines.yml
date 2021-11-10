@@ -1,0 +1,17 @@
+image: continuumio/miniconda3:latest
+
+pipelines:
+  default:
+      - step: # Run tests
+          name: Run unit tests.
+          caches:
+              - conda
+          script:
+              - conda env update -n signal --file env.yml
+              - conda activate signal
+              - python -m pytest -v ./unit_test
+
+definitions:
+   caches:
+     conda: ~/.conda/envs/scatter
+     codatarballs: /opt/conda/pkgs
