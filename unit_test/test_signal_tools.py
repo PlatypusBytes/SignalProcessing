@@ -123,7 +123,7 @@ class TestSignal(unittest.TestCase):
                           "Length": 10}}
         self.assertEqual(sig.log, log)
 
-        sig.fft()
+        sig.fft_w()
         log = {"FFT": True,
                "IFFT": False,
                "PSD": False,
@@ -133,19 +133,9 @@ class TestSignal(unittest.TestCase):
                           "Length": 10}}
         self.assertEqual(sig.log, log)
 
-        sig.inv_fft()
+        sig.integrate_w()
         log = {"FFT": True,
-               "IFFT": True,
-               "PSD": False,
-               "Integration": False,
-               "Filter": False,
-               "Window": {"Type": "Hann",
-                          "Length": 10}}
-        self.assertEqual(sig.log, log)
-
-        sig.integrate()
-        log = {"FFT": True,
-               "IFFT": True,
+               "IFFT": False,
                "PSD": False,
                "Integration": {"Integration": True,
                                "Order": 1,
@@ -157,26 +147,10 @@ class TestSignal(unittest.TestCase):
                           "Length": 10}}
         self.assertEqual(sig.log, log)
 
-        sig.filter(1, 2)
+        sig.filter_w(1, 2)
         log = {"FFT": True,
-               "IFFT": True,
+               "IFFT": False,
                "PSD": False,
-               "Integration": {"Integration": True,
-                               "Order": 1,
-                               "Baseline": False,
-                               "Moving": False,
-                               "High-pass": False},
-               "Filter": {"Type": ["lowpass"],
-                          "Cut-off": [1]
-                          },
-               "Window": {"Type": "Hann",
-                          "Length": 10}}
-        self.assertEqual(sig.log, log)
-
-        sig.psd(length_w=10)
-        log = {"FFT": True,
-               "IFFT": True,
-               "PSD": True,
                "Integration": {"Integration": True,
                                "Order": 1,
                                "Baseline": False,

@@ -70,6 +70,26 @@ class Window(signal_tools.Signal):
         self.spectrogram_time = []  # time for spectrogram
         return
 
+    @property
+    def fft(self):
+        raise AttributeError("fft method not support in Window. Use fft_w instead.")
+
+    @property
+    def inv_fft(self):
+        raise AttributeError("inv_fft method not implemented in Window.")
+
+    @property
+    def integrate(self):
+        raise AttributeError("integrate method not support in Window. Use integrate_w instead.")
+
+    @property
+    def filter(self):
+        raise AttributeError("filter method not support in Window. Use filter_w instead.")
+
+    @property
+    def psd(self):
+        raise AttributeError("psd method not implemented in Window.")
+
     def fft_w(self, length: [bool, int] = False) -> None:
         """
         Produces a moving FFT
