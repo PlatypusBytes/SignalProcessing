@@ -16,6 +16,7 @@ The supported operations are:
 * Inverse of FFT
 * Filtering (high and low-pass)
 * Integration
+* PSD (using Welch method)
 
 ## window
 Creates a moving window over a time history signal and performs operations. 

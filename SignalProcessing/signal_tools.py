@@ -24,6 +24,10 @@ class Signal:
         self.phase = []
         self.frequency = []
 
+        # parameters PSD
+        self.Pxx = []
+        self.frequency_Pxx = []
+
         # parameters inverted FFT
         self.spectrum_inv = []
         self.signal_inv = []
@@ -209,6 +213,18 @@ class Signal:
 
         return
 
-    def psd(self):
+    def psd(self, length_w: int = 128) -> None:
+        """
+        PSD of signal
+
+        Parameters
+        ----------
+        :param length_w: lenght of the window
+        """
+        # compute PSD using Welch method
+        self.frequency_Pxx, self.Pxx = signal.welch(self.signal, fs=self.Fs, nperseg=length_w)
+
+        # update log
+        self.log["PSD"] = True
         return
 

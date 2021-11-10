@@ -15,6 +15,8 @@ class Window(signal_tools.Signal):
         Processes a signal with a moving window.
         Only windows with 1/2 overlap are allowed.
 
+        Parameters
+        ----------
         @param time: Time
         @param sig: Signal to be processed
         @param M: Window length
@@ -71,6 +73,10 @@ class Window(signal_tools.Signal):
     def fft_w(self, length: [bool, int] = False) -> None:
         """
         Produces a moving FFT
+
+        Parameters
+        ----------
+        :param length: length of the FFT (default False -> uses length of window)
         """
 
         # length of FFT. if not available use window length
@@ -197,6 +203,8 @@ class Window(signal_tools.Signal):
         """
         Creates spectrogram plot
 
+        Parameters
+        ----------
         :param output_folder: output folder to save figure (optional: default './')
         """
         # cannot compute without FFT
