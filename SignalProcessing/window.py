@@ -220,7 +220,7 @@ class Window(signal_tools.Signal):
         self.log["Filter"] = sig.log["Filter"]
         return
 
-    def plot_spectrogram(self, output_folder: str = "./") -> None:
+    def plot_spectrogram(self, output_folder: str = "./", name: str = "spectogram") -> None:
         """
         Creates spectrogram plot
 
@@ -244,8 +244,8 @@ class Window(signal_tools.Signal):
         ax.set_xlabel("Time")
         ax.set_ylabel("Amplitude")
         ax.grid()
-        plt.savefig(os.path.join(output_folder, "spectrogram.png"))
-        plt.savefig(os.path.join(output_folder, "spectrogram.pdf"))
+        plt.savefig(os.path.join(output_folder, f"{name}.png"))
+        plt.savefig(os.path.join(output_folder, f"{name}.pdf"))
 
         plt.close()
 
