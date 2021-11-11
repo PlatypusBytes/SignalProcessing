@@ -119,7 +119,7 @@ class Window(signal_tools.Signal):
             signal_w = self.window * self.signal[idx_ini:idx_end]
 
             # fft window signal
-            sig = signal_tools.Signal(self.time[idx_ini:idx_end], signal_w)
+            sig = signal_tools.Signal(self.time[idx_ini:idx_end], signal_w, FS=self.Fs)
             sig.fft(nb_points=length, window=self.window)
 
             # spectrogram
