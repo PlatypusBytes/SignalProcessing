@@ -28,7 +28,6 @@ class Window(signal_tools.Signal):
         self.M = M
         if M % 2 != 0:
             sys.exit("Window length must be even")
-        self.nb_cycles = int(np.ceil(len(self.signal) / M))
 
         # ToDo: extend with other windows: check overlap
         if window_type == "Hann":
@@ -42,27 +41,25 @@ class Window(signal_tools.Signal):
         else:
             sys.exit(f"Window {window_type} not defined\nWindow must be: {', '.join(WINDOWS_TYPES)}")
 
-        # round off for end of the file. otherwise window goes over the end
-        if self.nb_cycles % 2 == 0:
-            self.round_off = 1
-        else:
-            self.round_off = 2
-
         # number of windows
-        self.nb_windows = int((self.nb_cycles * 2) - self.round_off)
+        self.nb_windows = int(np.ceil((len(self.signal) / M) * 2 - 2))
+
+        # round off for end of the file. otherwise window goes over the end
+        if self.nb_windows % 2 == 0:
+            round_off = 0
+        else:
+            round_off = 1
+
+        # size of new signal
+        new_size = int(np.ceil((self.nb_windows + round_off) * self.M / 2))
 
         # settings of window
         self.log.update({"Window": {"Type": window_type,
                                     "Length": M}})
 
-        # extend signal
-        if len(sig) < (self.nb_windows + self.round_off) / 2 * self.M:
-            self.time = np.zeros(int((self.nb_windows + self.round_off) / 2 * self.M))
-            self.signal = np.zeros(int((self.nb_windows + self.round_off) / 2 * self.M))
-
-            self.time[:len(time)] = time
-            self.time[len(time):] = np.cumsum(np.ones(int((self.nb_windows + self.round_off) / 2 * self.M) - len(time)) * np.mean(np.diff(time))) + time[-1]
-            self.signal[:len(sig)] = sig
+        # trim signal
+        self.time = self.time[:new_size]
+        self.signal = self.signal[:new_size]
 
         # additional variables
         self.time_org = time  # original time definition
