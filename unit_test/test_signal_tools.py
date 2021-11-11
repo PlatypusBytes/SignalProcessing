@@ -166,10 +166,10 @@ class TestSignal(unittest.TestCase):
 
     def test_fft_w(self):
         sig = window.Window(self.x, self.y, 512)
-        sig.fft_w(length=10000)
+        sig.fft_w()
 
-        self.assertAlmostEqual(sig.frequency[np.argmax(sig.amplitude[:int(len(sig.amplitude) / 2)])], 20 / 2 / np.pi, 2)
-        self.assertAlmostEqual(np.max(sig.amplitude[:int(len(sig.amplitude) / 2)]), 0.02, 2)
+        self.assertAlmostEqual(sig.frequency[np.argmax(sig.amplitude[:int(len(sig.amplitude) / 2)])], 20 / 2 / np.pi, 1)
+        self.assertAlmostEqual(np.max(sig.amplitude[:int(len(sig.amplitude) / 2)]), 0.026, 2)
 
         return
 
