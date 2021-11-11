@@ -97,12 +97,12 @@ class Window(signal_tools.Signal):
 
         Parameters
         ----------
-        :param length: length of the FFT (default False -> uses length of window)
+        :param length: length of the FFT (default False -> uses length of signal)
         """
 
         # length of FFT. if not available use window length
         if not length:
-            length = self.M
+            length = len(self.signal)
 
         # signal to be integrated
         self.spectrogram = np.zeros((length, self.nb_windows), dtype="complex128")
