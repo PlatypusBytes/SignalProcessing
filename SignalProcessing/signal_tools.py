@@ -163,7 +163,7 @@ class Signal:
 
         # high pass filter
         if hp:
-            self.filter(fpass, n, typ="highpass")
+            self.filter(fpass, n, type_filter="highpass")
             self.log["High-pass"] = True
 
         # log
@@ -171,7 +171,7 @@ class Signal:
         self.log["Integration"]["Order"] += 1
         return
 
-    def filter(self, Fpass: float, N: int, typ: str = "lowpass", rp: float = 0.01, rs: int = 60):
+    def filter(self, Fpass: float, N: int, type_filter: str = "lowpass", rp: float = 0.01, rs: int = 60):
         """
         Filter signal
 
@@ -179,7 +179,7 @@ class Signal:
         ----------
         :param Fpass: cut off frequency [Hz]
         :param N: order of the filter
-        :param type: type of the filter (optional: default lowpass)
+        :param type_filter: type of the filter (optional: default lowpass)
         :param rp: maximum ripple allowed below unity gain in the passband. Specified in decibels, as a positive number
                    default is 0.01
         :param rs: minimum attenuation required in the stop band. Specified in decibels, as a positive number
@@ -196,10 +196,10 @@ class Signal:
         types = ["lowpass", "highpass"]
 
         # check if filter type is supported
-        if typ not in types:
-            sys.exit(f"ERROR: Type filter '{typ}' not available")
+        if type_filter not in types:
+            sys.exit(f"ERROR: Type filter '{type_filter}' not available")
 
-        z, p, k = signal.ellip(N, rp, rs, Fpass / (self.Fs / 2), btype=typ, output='zpk')
+        z, p, k = signal.ellip(N, rp, rs, Fpass / (self.Fs / 2), btype=type_filter, output='zpk')
         sos = signal.zpk2sos(z, p, k)
 
         self.signal = signal.sosfilt(sos, self.signal)
@@ -208,7 +208,7 @@ class Signal:
         self.signal = self.signal[::-1]
 
         # add to log
-        self.log["Filter"]["Type"].append(typ)
+        self.log["Filter"]["Type"].append(type_filter)
         self.log["Filter"]["Cut-off"].append(Fpass)
 
         return

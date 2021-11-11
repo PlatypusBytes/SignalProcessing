@@ -183,7 +183,7 @@ class Window(signal_tools.Signal):
 
         return
 
-    def filter_w(self, Fpass: int, N: int, typ: str = "lowpass", rp: float = 0.01, rs: int = 60) -> None:
+    def filter_w(self, Fpass: int, N: int, type_filter: str = "lowpass", rp: float = 0.01, rs: int = 60) -> None:
         """
         Filter signal with window
 
@@ -191,7 +191,7 @@ class Window(signal_tools.Signal):
         ----------
         :param Fpass: cut off frequency [Hz]
         :param N: order of the filter
-        :param typ: type of the filter (optional: default lowpass)
+        :param type_filter: type of the filter (optional: default lowpass)
         :param rp: maximum ripple allowed below unity gain in the passband. Specified in decibels, as a positive number
                    default is 0.01
         :param rs: minimum attenuation required in the stop band. Specified in decibels, as a positive number
@@ -211,7 +211,7 @@ class Window(signal_tools.Signal):
 
             # fft window signal
             sig = signal_tools.Signal(self.time[idx_ini: idx_end], signal_w, FS=self.Fs)
-            sig.filter(Fpass, N, typ=typ, rp=rp, rs=rs)
+            sig.filter(Fpass, N, type_filter=type_filter, rp=rp, rs=rs)
 
             # add to result
             new_signal[idx_ini: idx_end] += sig.signal

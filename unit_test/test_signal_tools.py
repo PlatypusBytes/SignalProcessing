@@ -104,7 +104,7 @@ class TestSignal(unittest.TestCase):
 
     def test_filter(self):
         sig = signal_tools.Signal(self.x, self.y_noise)
-        sig.filter(10, 20, typ="lowpass")
+        sig.filter(10, 20, type_filter="lowpass")
 
         rmse = np.sqrt(np.sum((sig.signal - self.y) ** 2) / len(self.y))
         self.assertTrue(rmse < TOL)
@@ -188,7 +188,7 @@ class TestSignal(unittest.TestCase):
     def test_filter_w(self):
         w_lenght = 256
         sig = window.Window(self.x, self.y_noise, w_lenght)
-        sig.filter_w(10, 20, typ="lowpass")
+        sig.filter_w(10, 20, type_filter="lowpass")
 
         rmse = np.sqrt(np.sum((sig.signal[w_lenght:len(self.y)-w_lenght] - self.y[w_lenght:-w_lenght]) ** 2) / len(self.y[:w_lenght*2]))
         self.assertTrue(rmse < TOL)
