@@ -44,11 +44,8 @@ class Window(signal_tools.Signal):
         # number of windows
         self.nb_windows = int(np.ceil((len(self.signal) / M) * 2 - 2))
 
-        # round off for end of the file. otherwise window goes over the end
-        if self.nb_windows % 2 == 0:
-            round_off = 0
-        else:
-            round_off = 1
+        # round off for end of the file
+        round_off = 1
 
         # size of new signal
         new_size = int(np.ceil((self.nb_windows + round_off) * self.M / 2))
