@@ -43,6 +43,8 @@ class Window(signal_tools.Signal):
 
         # number of windows
         self.nb_windows = int(np.ceil((len(self.signal) / M) * 2 - 2))
+        if self.windows == 0:
+            self.nb_windows = 1
 
         # round off for end of the file
         round_off = 1
