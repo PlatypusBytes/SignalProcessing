@@ -220,13 +220,15 @@ class Window(signal_tools.Signal):
         self.log["Filter"] = sig.log["Filter"]
         return
 
-    def plot_spectrogram(self, output_folder: str = "./", name: str = "spectogram") -> None:
+    def plot_spectrogram(self, output_folder: str = "./", name: str = "spectogram", pdf: bool = False) -> None:
         """
         Creates spectrogram plot
 
         Parameters
         ----------
         :param output_folder: output folder to save figure (optional: default './')
+        :param name: name of the file (optional: default 'spectrogram')
+        :param pdf: save the figure in pdf format (optional: default 'False')
         """
         # cannot compute without FFT
         if not self.log["FFT"]:
@@ -238,15 +240,16 @@ class Window(signal_tools.Signal):
 
         # create fig
         fig, ax = plt.subplots(figsize=(6, 5))
-        ax.pcolormesh(self.spectrogram_time, self.frequency, np.abs(self.spectrogram),
+        ax.pcolormesh(self.spectrogram_time, self.frequency, 2 * np.abs(self.spectrogram),
                       cmap='Greys', shading='auto')
 
         ax.set_xlabel("Time")
-        ax.set_ylabel("Amplitude")
+        ax.set_ylabel("Frequency [Hz]")
         ax.grid()
+        ax.set_ylim((0, np.max(self.frequency) / 2))
         plt.savefig(os.path.join(output_folder, f"{name}.png"))
-        plt.savefig(os.path.join(output_folder, f"{name}.pdf"))
-
+        if pdf:
+            plt.savefig(os.path.join(output_folder, f"{name}.pdf"))
         plt.close()
 
         return
