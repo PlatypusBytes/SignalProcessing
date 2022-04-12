@@ -19,6 +19,7 @@ class TestSignal(unittest.TestCase):
         sig = signal_tools.Signal(self.x, self.y)
 
         log = {"FFT": False,
+               "Half_FFT": False,
                "IFFT": False,
                "PSD": False,
                "Integration": False,
@@ -27,6 +28,7 @@ class TestSignal(unittest.TestCase):
 
         sig.fft()
         log = {"FFT": True,
+               "Half_FFT": False,
                "IFFT": False,
                "PSD": False,
                "Integration": False,
@@ -35,6 +37,7 @@ class TestSignal(unittest.TestCase):
 
         sig.inv_fft()
         log = {"FFT": True,
+               "Half_FFT": False,
                "IFFT": True,
                "PSD": False,
                "Integration": False,
@@ -43,6 +46,7 @@ class TestSignal(unittest.TestCase):
 
         sig.integrate()
         log = {"FFT": True,
+               "Half_FFT": False,
                "IFFT": True,
                "PSD": False,
                "Integration": {"Integration": True,
@@ -55,6 +59,7 @@ class TestSignal(unittest.TestCase):
 
         sig.filter(1, 2)
         log = {"FFT": True,
+               "Half_FFT": False,
                "IFFT": True,
                "PSD": False,
                "Integration": {"Integration": True,
@@ -69,6 +74,22 @@ class TestSignal(unittest.TestCase):
 
         sig.psd(length_w=10)
         log = {"FFT": True,
+               "Half_FFT": False,
+               "IFFT": True,
+               "PSD": True,
+               "Integration": {"Integration": True,
+                               "Order": 1,
+                               "Baseline": False,
+                               "Moving": False,
+                               "High-pass": False},
+               "Filter": {"Type": ["lowpass"],
+                          "Cut-off": [1]
+                          }}
+        self.assertEqual(sig.log, log)
+
+        sig.fft(half_representation=True)
+        log = {"FFT": True,
+               "Half_FFT": True,
                "IFFT": True,
                "PSD": True,
                "Integration": {"Integration": True,
@@ -115,6 +136,7 @@ class TestSignal(unittest.TestCase):
         sig = window.Window(self.x, self.y, 10)
 
         log = {"FFT": False,
+               "Half_FFT": False,
                "IFFT": False,
                "PSD": False,
                "Integration": False,
@@ -125,6 +147,7 @@ class TestSignal(unittest.TestCase):
 
         sig.fft_w()
         log = {"FFT": True,
+               "Half_FFT": False,
                "IFFT": False,
                "PSD": False,
                "Integration": False,
@@ -135,6 +158,7 @@ class TestSignal(unittest.TestCase):
 
         sig.integrate_w()
         log = {"FFT": True,
+               "Half_FFT": False,
                "IFFT": False,
                "PSD": False,
                "Integration": {"Integration": True,
@@ -149,6 +173,7 @@ class TestSignal(unittest.TestCase):
 
         sig.filter_w(1, 2)
         log = {"FFT": True,
+               "Half_FFT": False,
                "IFFT": False,
                "PSD": False,
                "Integration": {"Integration": True,

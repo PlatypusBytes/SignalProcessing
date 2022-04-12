@@ -40,6 +40,7 @@ class Signal:
 
         # log properties
         self.log = {"FFT": False,
+                    "Half_FFT": False,
                     "IFFT": False,
                     "PSD": False,
                     "Integration": False,
@@ -53,7 +54,8 @@ class Signal:
         """
         return f"LOG description\n{self.log}"
 
-    def fft(self, nb_points: [bool, int] = False, window: str = "rectangular") -> None:
+    def fft(self, nb_points: [bool, int] = False, window: str = "rectangular", half_representation: bool = False) \
+            -> None:
         """
         FFT of signal
 
@@ -61,6 +63,7 @@ class Signal:
         ----------
         :param nb_points: number of points for FFT (optional default False)
         :param window: type of window (optional: default 'rectangular') otherwise it must be a np.ndarray
+        :param half_representation: true if fft should be computed in half representation (optional: default False)
         :return:
         """
         # check if number of points exits
@@ -92,6 +95,14 @@ class Signal:
         self.phase = np.unwrap(np.angle(self.spectrum))
         # compute frequency
         self.frequency = np.linspace(0, 1, nfft) * self.Fs
+
+        # half representation
+        if half_representation:
+            self.frequency = self.frequency[:int(nfft / 2)]
+            self.amplitude = 2 * self.amplitude[:int(nfft / 2)]
+            self.log["Half_FFT"] = True
+        else:
+            self.log["Half_FFT"] = False
         # log
         self.log["FFT"] = True
         return
@@ -104,6 +115,8 @@ class Signal:
         # check if FFT is available. if not returns message
         if not self.log["FFT"]:
             return print("FFT needs to be available before inv FFT can be computed")
+        if self.log["Half_FFT"]:
+            return print("FFT needs to be available not in half representation")
 
         # compute spectrum
         self.spectrum_inv = np.fft.ifft(self.amplitude * np.exp(1j * self.phase), len(self.amplitude))
