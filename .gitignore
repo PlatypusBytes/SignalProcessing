@@ -1,2 +1,7 @@
 .idea/
 .code/
+.tox/
+__pycache__
+SignalProcessing.egg-info/
+build/
+venv/
