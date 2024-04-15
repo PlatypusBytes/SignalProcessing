@@ -1,10 +1,11 @@
 import sys
+from typing import Union
 import numpy as np
 from scipy import integrate, signal
 
 
 class Signal:
-    def __init__(self, time: np.ndarray, sig: np.ndarray, FS: [bool, int] = False) -> None:
+    def __init__(self, time: np.ndarray, sig: np.ndarray, FS: Union[bool, int] = False) -> None:
         """
         Signal processing object
 
@@ -54,7 +55,7 @@ class Signal:
         """
         return f"LOG description\n{self.log}"
 
-    def fft(self, nb_points: [bool, int] = False, window: str = "rectangular", half_representation: bool = False) \
+    def fft(self, nb_points: Union[bool, int] = False, window: str = "rectangular", half_representation: bool = False) \
             -> None:
         """
         FFT of signal
@@ -235,7 +236,8 @@ class Signal:
         :param length_w: lenght of the window
         """
         # compute PSD using Welch method
-        self.frequency_Pxx, self.Pxx = signal.welch(self.signal, fs=self.Fs, nperseg=length_w)
+        self.frequency_Pxx, self.Pxx = signal.welch(self.signal, fs=self.Fs, nperseg=length_w,
+                                                    window='hamming', scaling="density")
 
         # update log
         self.log["PSD"] = True
