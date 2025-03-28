@@ -5,6 +5,18 @@ import numpy.typing as npt
 from scipy import integrate, signal
 from enum import Enum
 
+# octave bands
+BANDS = {"one-third": [[.08, .10],
+                       [.10, .126],
+                       [.126, .16],
+                       [.16, .20],
+                       [.20, .253],
+                       [.253, .32],
+                       [.32, .40],
+                       [.40, .50],
+                       [.50, .63]],
+         }
+
 class IntegrationRules(Enum):
     """
     Integration rules
@@ -12,10 +24,29 @@ class IntegrationRules(Enum):
     TRAPEZOID = 1
     SIMPSON = 2
 
+class Windows(Enum):
+    """
+    Windows types
+
+    The values are the same as in `scipy.signal`. This is used for the PSD.
+    """
+
+    HANN = 'hann'
+    HAMMING = 'hamming'
+    BLACKMAN = 'blackman'
+    RECTANGULAR = 'boxcar'
+    TRIANG = 'triang'
 
 class SignalProcessing:
-
-    def __init__(self, time: npt.NDArray[np.float64], signal: npt.NDArray[np.float64], FS: Union[None, int] = None):
+    """
+    Signal processing class
+    """
+    def __init__(self,
+                 time: npt.NDArray[np.float64],
+                 signal: npt.NDArray[np.float64],
+                 FS: Union[None, int] = None,
+                 window: Union[None, Windows] = None,
+                 window_size: int = 0):
         """
         Signal processing
 
@@ -24,6 +55,8 @@ class SignalProcessing:
         :param time: Time vector
         :param signal: Signal vector
         :param FS: Acquisition frequency (optional: default None. FS is computed based on time)
+        :param window: Type of window to use (optional: default None - uses rectangular window for entire signal)
+        :param window_size: Size of the window (optional: default 0 - uses signal length when window is None)
         """
         self.time = time
         self.signal = signal
@@ -36,50 +69,123 @@ class SignalProcessing:
         self.frequency_Pxx = None
         self.signal_inv = None
         self.time_inv = None
+
         # acquisition frequency
         if not FS:
             FS = int(np.ceil(1 / np.mean(np.diff(time))))
         self.Fs = FS
 
+        # windowing
+        signal_length = len(self.signal)
 
+        # When window is None, process entire signal with rectangular window
+        if window is None:
+            self.window = np.ones(signal_length)
+            self.window_size = signal_length
+            self.window_type = Windows.RECTANGULAR
+            self.nb_windows = 1
+            self.use_window = False
+        else:
+            if window_size == 0:
+                raise ValueError("When using a window the `window_size` must be specified")
+            if window_size % 2 != 0:
+                raise ValueError("Window length must be even")
+            if window not in Windows:
+                raise ValueError(f"Window type {window} not supported. Available types: {list(Windows)}")
+            if window_size > signal_length:
+                raise ValueError(f"Window length ({window_size}) cannot be greater than signal length ({signal_length}).")
 
-    def fft(self, nb_points: Union[None, int] = None, window: str = "rectangular", half_representation: bool = True):
+            self.window = self.__create_window(window, window_size)
+            self.window_size = window_size
+            self.window_type = window
+            self.nb_windows = int(np.ceil((signal_length / window_size) * 2 - 2))
+            self.use_window = True
+
+            # pad signal at the end if necessary to get full windows
+            if signal_length % window_size != 0:
+                self.signal = np.append(self.signal, np.zeros(window_size - (signal_length % window_size)))
+                self.time = np.append(self.time, np.zeros(window_size - (signal_length % window_size)))
+
+    @staticmethod
+    def __create_window(window_type: Windows, size: int) -> npt.NDArray[np.float64]:
+        """
+        Create a window array of specified type and size
+
+        Parameters
+        ----------
+        :param window_type: Type of window from Windows enum
+        :param size: Size of the window
+        :return: Window array of specified size
+        """
+        if window_type == Windows.RECTANGULAR:
+            return np.ones(size)
+        elif window_type == Windows.HANN:
+            return np.hanning(size)
+        elif window_type == Windows.HAMMING:
+            return np.hamming(size)
+        elif window_type == Windows.BLACKMAN:
+            return np.blackman(size)
+        elif window_type == Windows.TRIANG:
+            return signal.triang(size)
+        else:
+            raise ValueError(f"Window type {window_type} not supported"
+                             f"Available types: {list(Windows)}")
+
+    def fft(self,
+            nb_points: Union[None, int] = None,
+            half_representation: bool = True):
         """
         FFT of signal
 
         Parameters
         ----------
         :param nb_points: number of points for FFT (optional: default None)
-        :param window: type of window (optional: default 'rectangular') otherwise it must be a np.ndarray
-        :param half_representation: true if fft should be computed in half representation (optional: default False)
+        :param half_representation: true if fft should be computed in half representation (optional: default True)
         """
 
-         # if nb_points is empty: nb_points is signal length
-        if not nb_points:
-            nb_points = self.signal.shape[0]
-
-        # if lenght is even
-        if nb_points % 2 == 0:
-            nfft = nb_points
+        # if window is used, set nfft to window size
+        if self.use_window:
+            nfft = self.window_size
             sig = self.signal
         else:
-            nfft = nb_points + 1
-            sig = np.append(self.signal, 0.)
+            # if nb_points is None: nb_points is signal length
+            if nb_points is None:
+                nfft = len(self.signal)
+                sig = self.signal
+            else:
+                # if length is even
+                if nb_points % 2 == 0:
+                    nfft = nb_points
+                    sig = self.signal
+                else:
+                    nfft = nb_points + 1
+                    sig = np.append(self.signal, 0.)
+                    nfft = nb_points
 
-        # type of windows
-        if window == "rectangular":
-            normalise_fct = len(sig[sig != 0.])
-        elif isinstance(window, np.ndarray):
-            normalise_fct = np.sum(window)
-        else:
-            sys.exit(f"Window {window} not valid for FFT")
+        # Normalize by the sum of the window samples.
+        # This compensates for the energy reduction caused by non-rectangular windows, aiming to preserve the
+        # peak amplitude of stationary sinusoids.
+        normalise_fct = np.sum(self.window)
 
-        # compute spectrum
-        self.spectrum = np.fft.fft(sig, nfft) / normalise_fct
-        # compute amplitude
-        self.amplitude = np.abs(self.spectrum)
-        # compute phase
-        self.phase = np.unwrap(np.angle(self.spectrum))
+        spectrum_w = np.zeros((nfft, self.nb_windows), dtype="complex128")
+        hop_size = int(self.window_size * (1 - 0.5))
+
+        # for each window
+        for w in range(self.nb_windows):
+
+            idx_ini = w * hop_size
+            idx_end = idx_ini + self.window_size
+
+            # window signal
+            signal_w = self.window * sig[idx_ini:idx_end]
+
+            # fft window signal
+            spectrum_w[:, w] = np.fft.fft(signal_w, nfft) / normalise_fct
+
+
+        self.amplitude = np.mean(np.abs(spectrum_w), axis=1)
+        self.phase = np.unwrap(np.angle(np.mean(spectrum_w, axis=1)))
+
         # compute frequency
         self.frequency = np.linspace(0, 1, nfft) * self.Fs
 
@@ -122,7 +228,6 @@ class SignalProcessing:
         # mean average correction
         if moving:
             self.signal = self.signal - np.mean(self.signal)
-            self.log["Moving"] = True
 
         # integration rule
         if rule == IntegrationRules.TRAPEZOID:
@@ -168,23 +273,58 @@ class SignalProcessing:
         z, p, k = signal.ellip(N, rp, rs, Fpass / (self.Fs / 2), btype=type_filter, output='zpk')
         sos = signal.zpk2sos(z, p, k)
 
-        self.signal = signal.sosfilt(sos, self.signal)
-        self.signal = self.signal[::-1]
-        self.signal = signal.sosfilt(sos, self.signal)
-        self.signal = self.signal[::-1]
+        # Applies twice the filter to the signal to avoid phase distortion
+        self.signal = signal.sosfiltfilt(sos, self.signal)
 
-    def psd(self, length_w: int = 128):
+
+    def psd(self):
         """
         PSD of signal
-
-        Parameters
-        ----------
-        :param length_w: lenght of the window for PSD (optional: default 128)
         """
-        if length_w > len(self.signal):
-            raise ValueError(f"Window length ({length_w}) cannot be greater than signal length ({len(self.signal)}).")
+
+        # check if window is initialized
+        if not self.use_window:
+            raise ValueError("No window defined. Please define a window when initialising SignalProcessing.")
 
         # compute PSD using Welch method
-        self.frequency_Pxx, self.Pxx = signal.welch(self.signal, fs=self.Fs, nperseg=length_w,
-                                                    window='hamming', scaling="spectrum")
+        self.frequency_Pxx, self.Pxx = signal.welch(self.signal, fs=self.Fs, nperseg=self.window_size,
+                                                    window=self.window_type.value, scaling='density')
 
+
+    def v_eff(self, n: int = 4, tau: int = 2, order: int = 3):
+        """
+        Compute v_eff of signal based on SBR deel B Hinder voor personen in gebouwen (2006)
+
+
+        :param n:(optional, default = 4) number of time constants
+        :param tau: (optional, default = 2) time constant
+        :param order: (optional, default = 3) Butterworth filter order
+        """
+        fout = 1 / (1 - np.exp(-n))
+
+
+
+        # Weight function velocity
+        v0 = 1 / 1000  # [m/s]
+        f0 = 5.6  # Hz
+
+        1 / v0 * 1 / (np.sqrt(1 + f0 / f) ** 2)
+
+
+
+        for i, band in enumerate(BANDS["one-third"]):
+            derivative_value = self.derivative[i]
+            b, a = signal.butter(order, np.array(band) * 2 * self.dx, output="ba", btype="bandpass")
+            new_signal = signal.filtfilt(b, a, self.signal, padtype="odd", padlen=3*(max(len(b),len(a))-1))
+
+            while derivative_value != 0:
+                new_signal = np.diff(new_signal) / self.dx
+                derivative_value -= 1
+
+            ksi = np.linspace(0, n * tau, int(n * tau / self.dx + 1))
+            g = fout * np.exp(-ksi / tau)
+
+            convoluted_signal = np.sqrt(np.convolve(new_signal**2, g) * self.dx / tau)
+
+
+            print(1)
