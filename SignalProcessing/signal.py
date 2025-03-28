@@ -69,6 +69,7 @@ class SignalProcessing:
         self.frequency_Pxx = None
         self.signal_inv = None
         self.time_inv = None
+        self.v_eff = None
 
         # acquisition frequency
         if not FS:
@@ -291,40 +292,57 @@ class SignalProcessing:
                                                     window=self.window_type.value, scaling='density')
 
 
-    def v_eff(self, n: int = 4, tau: int = 2, order: int = 3):
+    def v_eff_SBR(self, n: int = 4, tau: int = 0.125):
         """
         Compute v_eff of signal based on SBR deel B Hinder voor personen in gebouwen (2006)
 
-
+        Parameters
+        ----------
         :param n:(optional, default = 4) number of time constants
-        :param tau: (optional, default = 2) time constant
-        :param order: (optional, default = 3) Butterworth filter order
+        :param tau: (optional, default = 0.125) time constant for the exponential decay
         """
+
+        # Create exponential decay function `g` for running RMS calculation
         fout = 1 / (1 - np.exp(-n))
+        qsi = np.linspace(0, n * tau, int(n * tau * self.Fs + 1))
+        g = fout * np.exp(-qsi / tau)
 
 
+        # Frequency weighting parameters
+        v0 = 1 / 1000  # Reference velocity [m/s]
+        f0 = 5.6       # Reference frequency [Hz]
 
-        # Weight function velocity
-        v0 = 1 / 1000  # [m/s]
-        f0 = 5.6  # Hz
+        # Handle even/odd signal length for FFT
+        if self.signal.shape[0]  % 2 != 0:
+            nv1 = int(self.signal.shape[0] / 2 + 0.5)
+            nv2 = int(self.signal.shape[0] / 2 - 0.5)
+        else:
+            nv1 = int(self.signal.shape[0] / 2)
+            nv2 = int(self.signal.shape[0] / 2)
 
-        1 / v0 * 1 / (np.sqrt(1 + f0 / f) ** 2)
+        # Calculate frequency resolution
+        df = 1 / (1 / self.Fs * self.signal.shape[0])
+        freq = np.arange(df, (nv1 + 1) * df, df)
 
+        # Create high-pass weighting filter (human perception curve)
+        Hv = (1 / v0) * 1 / (np.sqrt(1 + (f0 / freq) ** 2))
+        Hv = np.append(0, Hv)  # Add DC component
 
+        # Create low-pass filter with 50 Hz cutoff
+        cut_off_number = int(np.ceil(50 / df))
+        if cut_off_number < nv1:
+            Hv2 = np.zeros(Hv.shape[0])
+            Hv2[:cut_off_number+1] = 1
+        else:
+            Hv2 = np.ones(Hv.shape[0])
 
-        for i, band in enumerate(BANDS["one-third"]):
-            derivative_value = self.derivative[i]
-            b, a = signal.butter(order, np.array(band) * 2 * self.dx, output="ba", btype="bandpass")
-            new_signal = signal.filtfilt(b, a, self.signal, padtype="odd", padlen=3*(max(len(b),len(a))-1))
+        # Applies the frequency weighting functions
+        Fv = np.fft.fft(self.signal)
+        Fhv = Hv2 * Hv * Fv[:nv1+1]
+        Fv = np.append(Fhv, np.flipud(np.conj(Fhv[1:nv2])))
+        v_eff = np.real(np.fft.ifft(Fv))
 
-            while derivative_value != 0:
-                new_signal = np.diff(new_signal) / self.dx
-                derivative_value -= 1
+        # moving root-mean-square through convolution with the exponential decay function `g`
+        v_eff = np.sqrt( np.convolve(v_eff**2, g) * (1 / self.Fs) /tau)
 
-            ksi = np.linspace(0, n * tau, int(n * tau / self.dx + 1))
-            g = fout * np.exp(-ksi / tau)
-
-            convoluted_signal = np.sqrt(np.convolve(new_signal**2, g) * self.dx / tau)
-
-
-            print(1)
+        self.v_eff = v_eff[:self.signal.shape[0]]
