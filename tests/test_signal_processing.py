@@ -143,7 +143,6 @@ def test_psd(test_data):
     np.testing.assert_almost_equal(sig.frequency_Pxx[np.argmax(sig.Pxx)], FREQ, 2)
     assert (np.abs((np.max(sig.Pxx) - peak_psd) / peak_psd) < 0.035)
 
-@pytest.mark.skip(reason="Not implemented yet")
 def test_v_eff():
     """
     Test the v_eff function
@@ -153,27 +152,55 @@ def test_v_eff():
         raw = fi.read().splitlines()
     raw = np.array([list(map(float, r.split(";"))) for r in raw])
 
-    time = np.linspace(0, (raw.shape[0]-1) / 500, raw.shape[0])
-
-    # compute veff
-    for i in range(raw.shape[1]):
-        sig = SignalProcessing(time, raw[:, i])
-        sig.v_eff()
-
-        print(1)
-
     # open v_eff data
     with open("./tests/data/veff.csv") as fi:
         v_eff = fi.read().splitlines()
     v_eff = np.array([list(map(float, r.split(";"))) for r in v_eff])
 
+    time = np.linspace(0, (raw.shape[0]-1) / 500, raw.shape[0])
 
+    # compute veff
+    for i in range(raw.shape[1]):
+        sig = SignalProcessing(time, raw[:, i])
+        sig.v_eff_SBR()
+        np.testing.assert_almost_equal(sig.v_eff, np.array(v_eff)[:, i], 2)
 
+def test_str_representation(test_data):
+    """
+    Test the __str__ method to verify operations are tracked correctly
+    """
+    # Create signal instance
+    x, y, _ = test_data
+    sig = SignalProcessing(x, y, window=Windows.HAMMING, window_size=600)
 
-    import matplotlib.pyplot as plt
-    plt.plot(np.array(raw)[:, 0])
-    plt.plot(np.array(raw)[:, 1])
-    plt.plot(np.array(raw)[:, 2])
-    plt.plot(np.array(raw)[:, 3])
-    plt.show()
-    print(1)
+    # Get initial string representation
+    str_repr = str(sig)
+
+    # Verify basic information is in the representation
+    assert "SignalProcessing Object" in str_repr
+    assert f"Signal length: {len(sig.signal)}" in str_repr
+    assert f"Sampling frequency: {sig.Fs}" in str_repr
+    assert f"Window type: {sig.window_type.name}" in str_repr
+
+    # Verify initial padding operation is tracked if window size doesn't divide signal length
+    if len(x) % 600 != 0:
+        assert "Signal padded with zeros" in str_repr
+
+    # Perform operations
+    sig.fft()
+    sig.filter(10, 4, type_filter="lowpass")
+    sig.psd()
+
+    # Get updated string representation
+    str_repr = str(sig)
+
+    # Verify operations are tracked
+    assert "FFT" in str_repr
+    assert "Filter (lowpass" in str_repr
+    assert "PSD" in str_repr
+
+    # Check operations list directly
+    assert len(sig.operations) >= 3
+    assert any("FFT" in op for op in sig.operations)
+    assert any("Filter" in op for op in sig.operations)
+    assert any("PSD" in op for op in sig.operations)

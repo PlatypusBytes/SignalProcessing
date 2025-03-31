@@ -70,6 +70,8 @@ class SignalProcessing:
         self.signal_inv = None
         self.time_inv = None
         self.v_eff = None
+        # Track operations performed on the signal
+        self.operations = []
 
         # acquisition frequency
         if not FS:
@@ -106,6 +108,41 @@ class SignalProcessing:
             if signal_length % window_size != 0:
                 self.signal = np.append(self.signal, np.zeros(window_size - (signal_length % window_size)))
                 self.time = np.append(self.time, np.zeros(window_size - (signal_length % window_size)))
+                self.operations.append(f"Signal padded with zeros (original length: {signal_length}, new length: {len(self.signal)})")
+
+    def __str__(self) -> str:
+        """
+        String representation of the SignalProcessing object
+        showing the current state and operations performed.
+
+        Returns
+        -------
+        str: A formatted string with information about the signal processing instance
+        """
+        # Create basic signal info
+        info = [
+            f"SignalProcessing Object",
+            f"------------------------",
+            f"Signal length: {len(self.signal)} samples",
+            f"Sampling frequency: {self.Fs} Hz",
+            f"Signal duration: {self.time[-1]:.3f} seconds",
+        ]
+
+        # Window information
+        info.append(f"Window type: {self.window_type.name}")
+        info.append(f"Window size: {self.window_size} samples")
+        if self.use_window:
+            info.append(f"Number of windows: {self.nb_windows}")
+
+        # Show operations that have been performed
+        if self.operations:
+            info.append("\nOperations performed:")
+            for i, op in enumerate(self.operations):
+                info.append(f"- {i + 1}. {op}")
+        else:
+            info.append("\nNo operations performed yet")
+
+        return "\n".join(info)
 
     @staticmethod
     def __create_window(window_type: Windows, size: int) -> npt.NDArray[np.float64]:
@@ -195,6 +232,10 @@ class SignalProcessing:
             self.frequency = self.frequency[:int(nfft / 2)]
             self.amplitude = 2 * self.amplitude[:int(nfft / 2)]
 
+        # Add to operations list
+        op_info = f"FFT (points: {nfft}, half representation: {half_representation})"
+        self.operations.append(op_info)
+
     def inv_fft(self):
         """
         Inverse FFT of signal
@@ -209,6 +250,9 @@ class SignalProcessing:
         self.signal_inv = np.real(spectrum_inv) * len(self.amplitude)
         # time from frequency
         self.time_inv = np.cumsum(np.ones(len(self.amplitude)) * 1 / self.Fs) - 1 / self.Fs
+
+        # Add to operations list
+        self.operations.append("Inverse FFT")
 
     def integrate(self, rule: IntegrationRules = IntegrationRules.TRAPEZOID,
                   baseline: bool = False, moving: bool = False, hp: bool = False, ini_cond: float = 0.,
@@ -248,6 +292,18 @@ class SignalProcessing:
         if hp:
             self.filter(fpass, n, type_filter="highpass")
 
+        # Add to operations list
+        op_details = []
+        op_details.append(f"rule: {rule.name}")
+        if baseline:
+            op_details.append("baseline correction")
+        if moving:
+            op_details.append("moving average correction")
+        if hp:
+            op_details.append(f"highpass filter (cutoff: {fpass} Hz, order: {n})")
+
+        self.operations.append(f"Integration ({', '.join(op_details)})")
+
 
     def filter(self, Fpass: float, N: int, type_filter: str = "lowpass", rp: float = 0.01, rs: int = 60):
         """
@@ -277,6 +333,9 @@ class SignalProcessing:
         # Applies twice the filter to the signal to avoid phase distortion
         self.signal = signal.sosfiltfilt(sos, self.signal)
 
+        # Add to operations list
+        self.operations.append(f"Filter ({type_filter}, cutoff: {Fpass} Hz, order: {N})")
+
 
     def psd(self):
         """
@@ -290,6 +349,9 @@ class SignalProcessing:
         # compute PSD using Welch method
         self.frequency_Pxx, self.Pxx = signal.welch(self.signal, fs=self.Fs, nperseg=self.window_size,
                                                     window=self.window_type.value, scaling='density')
+
+        # Add to operations list
+        self.operations.append(f"PSD (window: {self.window_type.name}, size: {self.window_size})")
 
 
     def v_eff_SBR(self, n: int = 4, tau: int = 0.125):
@@ -346,3 +408,6 @@ class SignalProcessing:
         v_eff = np.sqrt( np.convolve(v_eff**2, g) * (1 / self.Fs) /tau)
 
         self.v_eff = v_eff[:self.signal.shape[0]]
+
+        # Add to operations list
+        self.operations.append(f"Effective velocity (SBR) (n={n}, tau={tau})")
