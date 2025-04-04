@@ -286,3 +286,57 @@ def test_spectrogram(test_data):
     # plt.title('Spectrogram')
     # plt.colorbar(label='Intensity [dB]')
     # plt.show()
+
+
+def test_reset(test_data):
+    """
+    Test the reset function to ensure it properly restores the object to its original state
+    """
+    # Create signal instance
+    x, y, _ = test_data
+    sig = SignalProcessing(x, y, window=Windows.HAMMING, window_size=600)
+
+    # Store original signal for comparison
+    original_signal = sig.signal.copy()
+
+    # Perform various operations
+    sig.fft()
+    sig.filter(10, 4, type_filter="lowpass")
+    sig.integrate(baseline=True, hp=True, fpass=1, n=6)
+    sig.psd()
+
+    # Verify operations were tracked and signal was modified
+    assert len(sig.operations) > 0
+    assert sig.frequency is not None
+    assert sig.amplitude is not None
+    assert sig.Pxx is not None
+    assert not np.array_equal(sig.signal, original_signal)
+
+    # Reset the object
+    sig.reset()
+
+    # Verify signal is reset to original
+    np.testing.assert_array_equal(sig.signal, sig.signal_org)
+
+    # Verify all processing results are cleared
+    assert sig.frequency is None
+    assert sig.amplitude is None
+    assert sig.phase is None
+    assert sig.spectrum is None
+    assert sig.Pxx is None
+    assert sig.frequency_Pxx is None
+    assert sig.signal_inv is None
+    assert sig.time_inv is None
+    assert sig.v_eff is None
+    assert sig.Sxx is None
+    assert sig.frequency_Sxx is None
+    assert sig.time_Sxx is None
+
+    # Verify FFT settings are reset
+    assert sig.fft_settings == {"nb_points": None, "half_representation": False}
+
+    # Verify operations history is cleared
+    assert len(sig.operations) == 0
+
+    # Verify string representation shows no operations
+    assert "No operations performed yet" in str(sig)

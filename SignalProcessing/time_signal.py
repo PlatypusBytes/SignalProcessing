@@ -241,7 +241,6 @@ class SignalProcessing:
             self.frequency = self.frequency[:int(nfft / 2)]
             self.amplitude = 2 * self.amplitude[:int(nfft / 2)]
             self.phase = self.phase[:int(nfft / 2)]
-            self.half_representation = True
 
         # FFT settings: needed to perform inverse FFT
         self.fft_settings = {"nb_points": nfft,
@@ -455,10 +454,31 @@ class SignalProcessing:
 
     def reset(self):
         """
-        Reset signal to original signal
+        Reset signal to original signal and clear all processing results.
         """
-        SignalProcessing(self.time, self.signal_org, FS=self.Fs)
 
+        # Reset signal to original
+        self.signal = self.signal_org.copy()
+
+        # Reset all processed data
+        self.frequency = None
+        self.amplitude = None
+        self.phase = None
+        self.spectrum = None
+        self.Pxx = None
+        self.frequency_Pxx = None
+        self.signal_inv = None
+        self.time_inv = None
+        self.v_eff = None
+        self.Sxx = None
+        self.frequency_Sxx = None
+        self.time_Sxx = None
+
+        # Reset FFT settings
+        self.fft_settings = {"nb_points": None, "half_representation": False}
+
+        # Clear operations history
+        self.operations = []
 
     def spectrogram(self):
         """
