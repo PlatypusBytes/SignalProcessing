@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Optional
 import sys
 import numpy as np
 import numpy.typing as npt
@@ -44,8 +44,8 @@ class SignalProcessing:
     def __init__(self,
                  time: npt.NDArray[np.float64],
                  signal: npt.NDArray[np.float64],
-                 FS: Union[None, int] = None,
-                 window: Union[None, Windows] = None,
+                 FS: Optional[int] = None,
+                 window: Optional[Windows] = None,
                  window_size: int = 0):
         """
         Signal processing
@@ -70,6 +70,8 @@ class SignalProcessing:
         self.signal_inv = None
         self.time_inv = None
         self.v_eff = None
+        self.fft_settings = {"nb_points": None,
+                             "half_representation": False}
         # Track operations performed on the signal
         self.operations = []
 
@@ -170,10 +172,11 @@ class SignalProcessing:
                              f"Available types: {list(Windows)}")
 
     def fft(self,
-            nb_points: Union[None, int] = None,
+            nb_points: Optional[int] = None,
             half_representation: bool = True):
         """
         FFT of signal
+        If window is used, the FFT is computed for each window and averaged.
 
         Parameters
         ----------
@@ -185,20 +188,22 @@ class SignalProcessing:
         if self.use_window:
             nfft = self.window_size
             sig = self.signal
+            odd_length = False
         else:
             # if nb_points is None: nb_points is signal length
             if nb_points is None:
                 nfft = len(self.signal)
                 sig = self.signal
-            else:
-                # if length is even
-                if nb_points % 2 == 0:
-                    nfft = nb_points
-                    sig = self.signal
-                else:
-                    nfft = nb_points + 1
-                    sig = np.append(self.signal, 0.)
-                    nfft = nb_points
+                odd_length = False
+
+            # if length is even
+            if nfft % 2 != 0:
+                nfft = len(self.signal) + 1
+                sig = np.append(self.signal, 0.)
+                self.window = np.ones(nfft)
+                self.window_size = nfft
+                odd_length = True
+
 
         # Normalize by the sum of the window samples.
         # This compensates for the energy reduction caused by non-rectangular windows, aiming to preserve the
@@ -222,7 +227,8 @@ class SignalProcessing:
 
 
         self.amplitude = np.mean(np.abs(spectrum_w), axis=1)
-        self.phase = np.unwrap(np.angle(np.mean(spectrum_w, axis=1)))
+        # self.phase = np.unwrap(np.angle(np.mean(spectrum_w, axis=1)))
+        self.phase = np.angle(np.mean(np.exp(1j * np.angle(spectrum_w)), axis=1))
 
         # compute frequency
         self.frequency = np.linspace(0, 1, nfft) * self.Fs
@@ -231,6 +237,13 @@ class SignalProcessing:
         if half_representation:
             self.frequency = self.frequency[:int(nfft / 2)]
             self.amplitude = 2 * self.amplitude[:int(nfft / 2)]
+            self.phase = self.phase[:int(nfft / 2)]
+            self.half_representation = True
+
+        # FFT settings: needed to perform inverse FFT
+        self.fft_settings = {"nb_points": nfft,
+                             "half_representation": half_representation,
+                             "odd_length": odd_length}
 
         # Add to operations list
         op_info = f"FFT (points: {nfft}, half representation: {half_representation})"
@@ -239,20 +252,45 @@ class SignalProcessing:
     def inv_fft(self):
         """
         Inverse FFT of signal
+
+        If the signal was processed with a window during FFT,
+        the inverse FFT will also use the same windowed approach
+        with proper overlap-add reconstruction.
         """
+        # check if FFT was computed
 
         if self.amplitude is None or self.phase is None:
-            sys.exit("No FFT computed. Please compute FFT first.")
+            raise ValueError("No FFT computed. Please compute FFT first.")
 
-        # compute spectrum
-        spectrum_inv = np.fft.ifft(self.amplitude * np.exp(1j * self.phase), len(self.amplitude))
+        if self.fft_settings["half_representation"]:
+            raise  NotImplementedError("Half representation not supported for inverse FFT. " \
+            "Please compute FFT with full representation.")
+
+        if self.use_window:
+            raise ValueError("Cannot perform inverse FFT on the windowed signal.")
+
+        # get FFT settings
+        odd_length = self.fft_settings["odd_length"]
+
+        # get FFT
+        amplitude = self.amplitude
+        phase = self.phase
+
+        # compute spectrum from amplitude and phase
+        spectrum = amplitude * np.exp(1j * phase)
+        spectrum_inv = np.fft.ifft(spectrum, len(spectrum))
         # inverse of the FFT signal
-        self.signal_inv = np.real(spectrum_inv) * len(self.amplitude)
+        self.signal_inv = np.real(spectrum_inv) * len(spectrum)
         # time from frequency
-        self.time_inv = np.cumsum(np.ones(len(self.amplitude)) * 1 / self.Fs) - 1 / self.Fs
+        self.time_inv = np.cumsum(np.ones(len(spectrum)) * 1 / self.Fs) - 1 / self.Fs
+
+        if odd_length:
+            # remove last sample
+            self.signal_inv = self.signal_inv[:-1]
+            self.time_inv = self.time_inv[:-1]
 
         # Add to operations list
-        self.operations.append("Inverse FFT")
+        self.operations.append("Inverse FFT" + (" with windowing" if self.use_window else ""))
 
     def integrate(self, rule: IntegrationRules = IntegrationRules.TRAPEZOID,
                   baseline: bool = False, moving: bool = False, hp: bool = False, ini_cond: float = 0.,
@@ -411,3 +449,9 @@ class SignalProcessing:
 
         # Add to operations list
         self.operations.append(f"Effective velocity (SBR) (n={n}, tau={tau})")
+
+    def reset(self):
+        """
+        Reset signal to original signal
+        """
+        SignalProcessing(self.time, self.signal_org, FS=self.Fs)
