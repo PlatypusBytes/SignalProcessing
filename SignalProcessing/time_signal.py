@@ -70,6 +70,9 @@ class SignalProcessing:
         self.signal_inv = None
         self.time_inv = None
         self.v_eff = None
+        self.Sxx = None
+        self.frequency_Sxx = None
+        self.time_Sxx = None
         self.fft_settings = {"nb_points": None,
                              "half_representation": False}
         # Track operations performed on the signal
@@ -455,3 +458,18 @@ class SignalProcessing:
         Reset signal to original signal
         """
         SignalProcessing(self.time, self.signal_org, FS=self.Fs)
+
+
+    def spectrogram(self):
+        """
+        Compute spectrogram of signal
+        """
+        # compute spectrogram
+        f, t, Sxx = signal.spectrogram(self.signal, fs=self.Fs, window=self.window_type.value,
+                                       nperseg=self.window_size, noverlap=self.window_size // 8)
+        self.Sxx = Sxx
+        self.frequency_Sxx = f
+        self.time_Sxx = t
+
+        # Add to operations list
+        self.operations.append(f"Spectrogram (nperseg: {self.window_size}, noverlap: {self.window_size // 8})")

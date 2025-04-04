@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+
 from SignalProcessing.time_signal import SignalProcessing, IntegrationRules, Windows
 
 TOL = 3e-3
@@ -259,3 +260,29 @@ def test_str_representation(test_data):
     assert any("FFT" in op for op in sig.operations)
     assert any("Filter" in op for op in sig.operations)
     assert any("PSD" in op for op in sig.operations)
+
+def test_spectrogram(test_data):
+    """
+    Test the spectrogram function
+    """
+    x, y, _ = test_data
+    sig = SignalProcessing(x, y, window=Windows.HAMMING, window_size=600)
+    sig.spectrogram()
+
+    # check if signal lenght has been adapted to window size
+    assert sig.Sxx.shape == (301, 95)
+    assert sig.time_Sxx.shape == (95,)
+    assert sig.frequency_Sxx.shape == (301,)
+
+    np.testing.assert_almost_equal(sig.frequency_Sxx[np.where(sig.Sxx==np.max(sig.Sxx))[0][0]], FREQ, 0)
+    np.testing.assert_almost_equal(np.max(sig.Sxx), 1.27, 2)
+
+    # # plot spectrogram
+    # import matplotlib.pyplot as plt
+    # plt.figure()
+    # plt.pcolormesh(t, f, 10 * np.log10(Sxx), shading='gouraud')
+    # plt.ylabel('Frequency [Hz]')
+    # plt.xlabel('Time [s]')
+    # plt.title('Spectrogram')
+    # plt.colorbar(label='Intensity [dB]')
+    # plt.show()
