@@ -39,7 +39,7 @@ class Windows(Enum):
 
 class SignalProcessing:
     """
-    Signal processing class
+    Signal processing class for time signals
     """
     def __init__(self,
                  time: npt.NDArray[np.float64],
