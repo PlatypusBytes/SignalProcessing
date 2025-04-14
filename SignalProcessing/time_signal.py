@@ -52,11 +52,12 @@ class SignalProcessing:
 
         Parameters
         ----------
-        :param time: Time vector
-        :param signal: Signal vector
-        :param FS: Acquisition frequency (optional: default None. FS is computed based on time)
-        :param window: Type of window to use (optional: default None - uses rectangular window for entire signal)
-        :param window_size: Size of the window (optional: default 0 - uses signal length when window is None)
+        :param time (npt.NDArray[np.float64]): Time vector
+        :param signal (npt.NDArray[np.float64]): Signal vector
+        :param FS (Optional[int]): Acquisition frequency (optional: default None. FS is computed based on time)
+        :param window (Optional[Windows]): Type of window to use (optional: default None - uses rectangular
+         window for entire signal)
+        :param window_size (int): Size of the window (optional: default 0 - uses signal length when window is None)
         """
         self.time = time
         self.signal = signal
@@ -156,9 +157,9 @@ class SignalProcessing:
 
         Parameters
         ----------
-        :param window_type: Type of window from Windows enum
-        :param size: Size of the window
-        :return: Window array of specified size
+        :param window_type (Windows): Type of window from Windows enum
+        :param size (int): Size of the window
+        :return (npt.NDArray[np.float64]): Window array of specified size
         """
         if window_type == Windows.RECTANGULAR:
             return np.ones(size)
@@ -183,8 +184,9 @@ class SignalProcessing:
 
         Parameters
         ----------
-        :param nb_points: number of points for FFT (optional: default None)
-        :param half_representation: true if fft should be computed in half representation (optional: default True)
+        :param nb_points (Optional[int]): number of points for FFT (optional: default None)
+        :param half_representation (bool): true if fft should be computed in half representation
+         (optional: default True)
         """
 
         # if window is used, set nfft to window size
@@ -302,13 +304,13 @@ class SignalProcessing:
 
         Parameters
         ----------
-        :param rule: integration rule (optional: default TRAPEZOID)
-        :param baseline: base line correction (optional: default False)
-        :param moving: moving average correction (optional: default False)
-        :param hp: highpass filter correction at fpass (optional: default False)
-        :param ini_cond: initial conditions. (optional: default 0.0)
-        :param fpass: cut off frequency [Hz]. only used if hp=True (optional: default 0.5)
-        :param n: order of the filter. only used if hp=True (optional: default 6)
+        :param rule (IntegrationRules): integration rule (optional: default TRAPEZOID)
+        :param baseline (bool): base line correction (optional: default False)
+        :param moving (bool): moving average correction (optional: default False)
+        :param hp (bool): highpass filter correction at fpass (optional: default False)
+        :param ini_cond (float): initial conditions. (optional: default 0.0)
+        :param fpass (float): cut off frequency [Hz]. only used if hp=True (optional: default 0.5)
+        :param n (int): order of the filter. only used if hp=True (optional: default 6)
         """
         # mean average correction
         if moving:
@@ -351,13 +353,13 @@ class SignalProcessing:
 
         Parameters
         ----------
-        :param Fpass: cut off frequency [Hz]
-        :param N: order of the filter
-        :param type_filter: type of the filter (optional: default lowpass)
-        :param rp: maximum ripple allowed below unity gain in the passband. Specified in decibels, as a positive number
-                   default is 0.01
-        :param rs: minimum attenuation required in the stop band. Specified in decibels, as a positive number
-                   default is 60
+        :param Fpass (float): cut off frequency [Hz]
+        :param N (int): order of the filter
+        :param type_filter (str): type of the filter (optional: default lowpass)
+        :param rp (float): maximum ripple allowed below unity gain in the passband. Specified in decibels, as a
+         positive number. (optional: default 0.01)
+        :param rs (int): minimum attenuation required in the stop band. Specified in decibels, as a positive number
+         (optional: default 60)
         """
         # types allowed
         types = ["lowpass", "highpass"]
@@ -394,14 +396,14 @@ class SignalProcessing:
         self.operations.append(f"PSD (window: {self.window_type.name}, size: {self.window_size})")
 
 
-    def v_eff_SBR(self, n: int = 4, tau: int = 0.125):
+    def v_eff_SBR(self, n: int = 4, tau: float = 0.125):
         """
         Compute v_eff of signal based on SBR deel B Hinder voor personen in gebouwen (2006)
 
         Parameters
         ----------
-        :param n:(optional, default = 4) number of time constants
-        :param tau: (optional, default = 0.125) time constant for the exponential decay
+        :param n:(int) number of time constants. (optional: default 4)
+        :param tau: (float) time constant for the exponential decay (optional: default 0.125)
         """
 
         # Create exponential decay function `g` for running RMS calculation
