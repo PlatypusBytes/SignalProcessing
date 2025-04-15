@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pylab as plt
-from SignalProcessing.time_signal import SignalProcessing, IntegrationRules, Windows
+from SignalProcessing.time_signal import TimeSignalProcessing, IntegrationRules, Windows
 
 
 # Create test data
@@ -14,7 +14,7 @@ y_noise = y + 0.01 * np.sin(120 * x)
 print("------------------------------------")
 print("EXAMPLE 1: Basic FFT and integration")
 print("------------------------------------")
-sig = SignalProcessing(x, y)
+sig = TimeSignalProcessing(x, y)
 print(sig)
 
 # Perform FFT
@@ -52,7 +52,7 @@ print(sig)
 print("---------------------------------------")
 print("EXAMPLE 2: Windowed processing and PSD")
 print("---------------------------------------")
-sig_window = SignalProcessing(x, y_noise, window=Windows.HAMMING, window_size=4096)
+sig_window = TimeSignalProcessing(x, y_noise, window=Windows.HAMMING, window_size=4096)
 print(sig_window)
 
 # Calculate and plot PSD
@@ -86,7 +86,7 @@ print("---------------------------")
 print("EXAMPLE 3: Signal filtering")
 print("---------------------------")
 # Create a new signal with noise
-sig_filter = SignalProcessing(x, y_noise)
+sig_filter = TimeSignalProcessing(x, y_noise)
 print(sig_filter)
 
 plt.figure(figsize=(10, 6))
@@ -118,7 +118,7 @@ print(sig_filter)
 print("----------------------")
 print("EXAMPLE 4: Inverse FFT")
 print("----------------------")
-sig_ifft = SignalProcessing(x, y)
+sig_ifft = TimeSignalProcessing(x, y)
 print(sig_ifft)
 
 # Perform full representation FFT (needed for inverse FFT)
@@ -160,7 +160,7 @@ print("-------------------------------------------")
 t = np.linspace(0, 10, 5001)
 vib_signal = 0.5 * np.sin(2 * np.pi * 2 * t) + 0.3 * np.sin(2 * np.pi * 8 * t) + 0.2 * np.sin(2 * np.pi * 15 * t)
 
-sig_veff = SignalProcessing(t, vib_signal)
+sig_veff = TimeSignalProcessing(t, vib_signal)
 # Calculate effective velocity
 sig_veff.v_eff_SBR()
 
@@ -187,11 +187,11 @@ t_acc = np.linspace(0, 5, 5001)
 acc = np.sin(2 * np.pi * 1 * t_acc)
 
 # Trapezoid integration
-sig_trap = SignalProcessing(t_acc, acc)
+sig_trap = TimeSignalProcessing(t_acc, acc)
 sig_trap.integrate(rule=IntegrationRules.TRAPEZOID, baseline=True)
 
 # Simpson integration
-sig_simp = SignalProcessing(t_acc, acc)
+sig_simp = TimeSignalProcessing(t_acc, acc)
 sig_simp.integrate(rule=IntegrationRules.SIMPSON, baseline=True)
 
 # Analytical integration for comparison (integral of sin(2πt) is -cos(2πt)/(2π))

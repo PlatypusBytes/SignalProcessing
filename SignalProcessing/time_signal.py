@@ -17,6 +17,14 @@ BANDS = {"one-third": [[.08, .10],
                        [.50, .63]],
          }
 
+class FilterDesign(Enum):
+    """
+    Filter design types
+    """
+    BUTTERWORTH = 1
+    CHEBYSHEV = 2
+    ELLIPTIC = 3
+
 class IntegrationRules(Enum):
     """
     Integration rules
@@ -37,14 +45,14 @@ class Windows(Enum):
     RECTANGULAR = 'boxcar'
     TRIANG = 'triang'
 
-class SignalProcessing:
+class TimeSignalProcessing:
     """
     Signal processing class for time signals
     """
     def __init__(self,
                  time: npt.NDArray[np.float64],
                  signal: npt.NDArray[np.float64],
-                 FS: Optional[int] = None,
+                 Fs: Optional[int] = None,
                  window: Optional[Windows] = None,
                  window_size: int = 0):
         """
@@ -54,7 +62,7 @@ class SignalProcessing:
         ----------
         :param time (npt.NDArray[np.float64]): Time vector
         :param signal (npt.NDArray[np.float64]): Signal vector
-        :param FS (Optional[int]): Acquisition frequency (optional: default None. FS is computed based on time)
+        :param Fs (Optional[int]): Acquisition frequency (optional: default None. Fs is computed based on time)
         :param window (Optional[Windows]): Type of window to use (optional: default None - uses rectangular
          window for entire signal)
         :param window_size (int): Size of the window (optional: default 0 - uses signal length when window is None)
@@ -80,9 +88,9 @@ class SignalProcessing:
         self.operations = []
 
         # acquisition frequency
-        if not FS:
-            FS = int(np.ceil(1 / np.mean(np.diff(time))))
-        self.Fs = FS
+        if not Fs:
+            Fs = int(np.ceil(1 / np.mean(np.diff(time))))
+        self.Fs = Fs
 
         # windowing
         signal_length = len(self.signal)
@@ -208,7 +216,6 @@ class SignalProcessing:
                 self.window = np.ones(nfft)
                 self.window_size = nfft
                 odd_length = True
-
 
         # Normalize by the sum of the window samples.
         # This compensates for the energy reduction caused by non-rectangular windows, aiming to preserve the
@@ -347,7 +354,8 @@ class SignalProcessing:
         self.operations.append(f"Integration ({', '.join(op_details)})")
 
 
-    def filter(self, Fpass: float, N: int, type_filter: str = "lowpass", rp: float = 0.01, rs: int = 60):
+    def filter(self, Fpass: float, N: int, filter_design: FilterDesign = FilterDesign.ELLIPTIC,
+               type_filter: str = "lowpass", rp: float = 0.01, rs: int = 60):
         """
         Filter signal
 
@@ -355,6 +363,7 @@ class SignalProcessing:
         ----------
         :param Fpass (float): cut off frequency [Hz]
         :param N (int): order of the filter
+        :param filter_design (FilterDesign): filter design (optional: default ELLIPTIC)
         :param type_filter (str): type of the filter (optional: default lowpass)
         :param rp (float): maximum ripple allowed below unity gain in the passband. Specified in decibels, as a
          positive number. (optional: default 0.01)
@@ -362,14 +371,21 @@ class SignalProcessing:
          (optional: default 60)
         """
         # types allowed
-        types = ["lowpass", "highpass"]
+        types = ["lowpass", "highpass", "bandpass"]
 
         # check if filter type is supported
         if type_filter not in types:
             sys.exit(f"ERROR: Type filter '{type_filter}' not available\n"
                      "Filter type must be in {types}")
 
-        z, p, k = signal.ellip(N, rp, rs, Fpass / (self.Fs / 2), btype=type_filter, output='zpk')
+        # design filter
+        if filter_design == FilterDesign.ELLIPTIC:
+            z, p, k = signal.ellip(N, rp, rs, np.array(Fpass) / (self.Fs / 2), btype=type_filter, output='zpk')
+        elif filter_design == FilterDesign.BUTTERWORTH:
+            z, p, k = signal.butter(N, np.array(Fpass) / (self.Fs / 2), btype=type_filter, output='zpk')
+        elif filter_design == FilterDesign.CHEBYSHEV:
+            z, p, k = signal.cheby1(N, rp, np.array(Fpass) / (self.Fs / 2), btype=type_filter, output='zpk')
+
         sos = signal.zpk2sos(z, p, k)
 
         # Applies twice the filter to the signal to avoid phase distortion
@@ -379,18 +395,32 @@ class SignalProcessing:
         self.operations.append(f"Filter ({type_filter}, cutoff: {Fpass} Hz, order: {N})")
 
 
-    def psd(self):
+    def psd(self, detrend: str = "linear", nb_points: Optional[int] = None):
         """
         PSD of signal
+
+        Parameters
+        ----------
+        :param detrend (str): detrend method (optional: default linear)
+        :param nb_points (Optional[int]): number of points for FFT (optional: default None)
         """
+
+        if detrend not in ["linear", False]:
+            raise ValueError("Detrend method not supported. Available methods: ['linear', False]")
 
         # check if window is initialized
         if not self.use_window:
             raise ValueError("No window defined. Please define a window when initialising SignalProcessing.")
 
+        # if nb_points is None: nb_points is window length
+        if nb_points is None:
+            nfft = self.window_size
+        else:
+            nfft = nb_points
+
         # compute PSD using Welch method
-        self.frequency_Pxx, self.Pxx = signal.welch(self.signal, fs=self.Fs, nperseg=self.window_size,
-                                                    window=self.window_type.value, scaling='density')
+        self.frequency_Pxx, self.Pxx = signal.welch(self.signal, fs=self.Fs, nperseg=self.window_size, nfft=nfft,
+                                                    window=self.window_type.value, scaling='density', detrend=detrend)
 
         # Add to operations list
         self.operations.append(f"PSD (window: {self.window_type.name}, size: {self.window_size})")
