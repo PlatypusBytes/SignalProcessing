@@ -1,7 +1,8 @@
 from typing import Optional, List, Tuple
 import numpy as np
 import numpy.typing as npt
-from .time_signal import TimeSignalProcessing, FilterDesign, BANDS, Windows
+from .time_signal import TimeSignalProcessing, FilterDesign, Windows
+
 
 class SpaceSignalProcessing:
     """
@@ -80,11 +81,23 @@ class SpaceSignalProcessing:
         :param convert_m2mm (optional, default = True): if True, converts the results from m to mm
         """
 
+        # octave bands used for the processing
+        bands = {"one-third": [[.08, .10],
+                               [.10, .126],
+                               [.126, .16],
+                               [.16, .20],
+                               [.20, .253],
+                               [.253, .32],
+                               [.32, .40],
+                               [.40, .50],
+                               [.50, .63]],
+                }
+
         # setting for the processing
         self.DXmaxFast = 1
         nb_fft_min = 256  # minimum number of samples for the power spectral density
         derivative = [0, 0, 0, 2, 2, 2, 2, 2, 2]  # number of times that each frequency band is derived
-        one_third_octave_bands = BANDS["one-third"]
+        one_third_octave_bands = bands["one-third"]
 
         if len(derivative) != len(one_third_octave_bands):
             raise ValueError("The number of derivative must be equal to the number of frequency bands")

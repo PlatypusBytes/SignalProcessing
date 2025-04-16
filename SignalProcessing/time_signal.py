@@ -5,17 +5,6 @@ import numpy.typing as npt
 from scipy import integrate, signal
 from enum import Enum
 
-# octave bands
-BANDS = {"one-third": [[.08, .10],
-                       [.10, .126],
-                       [.126, .16],
-                       [.16, .20],
-                       [.20, .253],
-                       [.253, .32],
-                       [.32, .40],
-                       [.40, .50],
-                       [.50, .63]],
-         }
 
 class FilterDesign(Enum):
     """
