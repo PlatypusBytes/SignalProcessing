@@ -99,9 +99,6 @@ class SpaceSignalProcessing:
         nb_fft_min = 256  # minimum number of samples for the power spectral density
         derivative = [0, 0, 0, 2, 2, 2, 2, 2, 2]  # number of times that each frequency band is derived
 
-        if len(derivative) != len(one_third_octave_bands):
-            raise ValueError("The number of derivative must be equal to the number of frequency bands")
-
         # RMS of the square root of the power spectral density
         self.rms_bands = np.zeros(len(one_third_octave_bands))
         # maximum effective value over the entire signal
@@ -115,8 +112,15 @@ class SpaceSignalProcessing:
 
         # compute the power spectral density
         n_fft = int(np.max([2 ** (np.ceil(np.log2(len(self.signal)))), nb_fft_min]))
-        sig = TimeSignalProcessing(self.coordinates, self.signal, Fs=self.fs, window=Windows.HAMMING,
-                                   window_size=len(self.signal))
+        # if signal is odd length, add a zero to make it even
+        if len(self.signal) % 2 != 0:
+            signal = np.append(self.signal, 0)
+            coordinates = np.append(self.coordinates, self.coordinates[-1] + (self.coordinates[1] - self.coordinates[0]))
+        else:
+            signal = self.signal
+            coordinates = self.coordinates
+        sig = TimeSignalProcessing(coordinates, signal, Fs=self.fs, window=Windows.HAMMING,
+                                   window_size=len(signal))
         sig.psd(nb_points=n_fft, detrend=False)
 
         # compute the rsm psd
