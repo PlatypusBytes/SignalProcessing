@@ -4,3 +4,4 @@ __pycache__
 SignalProcessingTools.egg-info/
 build/
 venv/
+dist/
