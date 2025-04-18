@@ -1,6 +1,6 @@
 # SignalProcessingTools
 
-![Tests](https://github.com//PlatypusBytes/actions/workflows/tests.yml/badge.svg)
+![Tests](https://github.com//PlatypusBytes/SignalProcessing/actions/workflows/tests.yml/badge.svg)
 [![PyPI version](https://img.shields.io/pypi/v/SignalProcessingTools.svg)](https://pypi.org/project/SignalProcessingTools/)
 [![Python versions](https://img.shields.io/pypi/pyversions/SignalProcessingTools.svg)](https://pypi.org/project/SignalProcessingTools/)
 
