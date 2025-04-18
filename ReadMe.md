@@ -1,6 +1,9 @@
 # SignalProcessingTools
 
-![Tests](https://github.com/StemVibrations/STEM/actions/workflows/tests.yml/badge.svg)
+![Tests](https://github.com//PlatypusBytes/actions/workflows/tests.yml/badge.svg)
+[![PyPI version](https://img.shields.io/pypi/v/SignalProcessingTools.svg)](https://pypi.org/project/SignalProcessingTools/)
+[![Python versions](https://img.shields.io/pypi/pyversions/SignalProcessingTools.svg)](https://pypi.org/project/SignalProcessingTools/)
+
 
 A comprehensive Python package for time and space domain signal processing operations with a focus on vibration analysis and frequency-domain transformations.
 The space domain operations focus on railway applications, while the time domain operations are more general.
