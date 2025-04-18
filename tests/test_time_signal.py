@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from SignalProcessing.time_signal import TimeSignalProcessing, IntegrationRules, Windows
+from SignalProcessingTools.time_signal import TimeSignalProcessing, IntegrationRules, Windows
 
 TOL = 3e-3
 FREQ = 6

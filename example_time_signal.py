@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pylab as plt
-from SignalProcessing.time_signal import TimeSignalProcessing, IntegrationRules, Windows
+from SignalProcessingTools.time_signal import TimeSignalProcessing, IntegrationRules, Windows
 
 
 # Create test data

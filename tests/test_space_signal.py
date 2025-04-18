@@ -2,7 +2,7 @@ import pytest
 import json
 import numpy as np
 
-from SignalProcessing.space_signal import SpaceSignalProcessing
+from SignalProcessingTools.space_signal import SpaceSignalProcessing
 
 
 @pytest.fixture
