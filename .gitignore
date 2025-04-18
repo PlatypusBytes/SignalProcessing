@@ -1,7 +1,6 @@
-.idea/
 .vscode/
 .tox/
 __pycache__
-SignalProcessing.egg-info/
+SignalProcessingTools.egg-info/
 build/
 venv/

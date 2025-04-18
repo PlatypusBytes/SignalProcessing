@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from SignalProcessing.time_signal import SignalProcessing, IntegrationRules, Windows
+from SignalProcessingTools.time_signal import TimeSignalProcessing, IntegrationRules, Windows
 
 TOL = 3e-3
 FREQ = 6
@@ -25,7 +25,7 @@ def test_fft(test_data):
 
     # results half representation
     x, y, _ = test_data
-    sig = SignalProcessing(x, y)
+    sig = TimeSignalProcessing(x, y)
     sig.fft()
 
     # check if signal lenght has been adapted to window size
@@ -48,7 +48,7 @@ def test_fft(test_data):
 
     # example with spectral leakage
     y = 1.75 * np.sin(2.675 * 2 * np.pi * x)
-    sig = SignalProcessing(x, y)
+    sig = TimeSignalProcessing(x, y)
     sig.fft()
 
     np.testing.assert_almost_equal(sig.frequency[np.argmax(sig.amplitude[:int(len(sig.amplitude) / 2)])], 2.675, 2)
@@ -62,10 +62,10 @@ def test_fft_window(test_data):
 
     # assert that sig raises a Value error
     with pytest.raises(ValueError, match="When using a window the `window_size` must be specified"):
-        sig = SignalProcessing(x, y, window=Windows.HAMMING)
+        sig = TimeSignalProcessing(x, y, window=Windows.HAMMING)
 
     # test with window - half representation
-    sig = SignalProcessing(x, y, window=Windows.HAMMING, window_size=6000)
+    sig = TimeSignalProcessing(x, y, window=Windows.HAMMING, window_size=6000)
     sig.fft()
 
     # check if signal lenght has been adapted to window size
@@ -93,7 +93,7 @@ def test_ifft(test_data):
     x, y, _ = test_data
 
     # test with window - half representation
-    sig = SignalProcessing(x, y)
+    sig = TimeSignalProcessing(x, y)
     sig.fft(half_representation=True)
 
     # assert that sig raises a Value error
@@ -101,7 +101,7 @@ def test_ifft(test_data):
         sig.inv_fft()
 
     # test with window - full representation
-    sig = SignalProcessing(x, y)
+    sig = TimeSignalProcessing(x, y)
     sig.fft(half_representation=False)
 
     sig.inv_fft()
@@ -119,7 +119,7 @@ def test_ifft_window(test_data):
     x, y, _ = test_data
 
     # test with window - half representation
-    sig = SignalProcessing(x, y, window=Windows.HAMMING, window_size=6000)
+    sig = TimeSignalProcessing(x, y, window=Windows.HAMMING, window_size=6000)
     sig.fft(half_representation=True)
 
     # assert that sig raises a Value error
@@ -127,7 +127,7 @@ def test_ifft_window(test_data):
         sig.inv_fft()
 
     # test with window - half representation
-    sig = SignalProcessing(x, y, window=Windows.HAMMING, window_size=6000)
+    sig = TimeSignalProcessing(x, y, window=Windows.HAMMING, window_size=6000)
     sig.fft(half_representation=False)
 
     # assert that sig raises a Value error
@@ -140,7 +140,7 @@ def test_int(test_data):
     Test the integration function
     """
     x, y, _ = test_data
-    sig = SignalProcessing(x, y)
+    sig = TimeSignalProcessing(x, y)
     sig.integrate(baseline=True, hp=True, fpass=1, n=6)
 
     omega = 2 * np.pi * FREQ
@@ -149,7 +149,7 @@ def test_int(test_data):
     rmse = np.sqrt(np.sum((sig.signal - int_sig) ** 2) / len(int_sig))
     assert(rmse < TOL)
 
-    sig = SignalProcessing(x, y)
+    sig = TimeSignalProcessing(x, y)
     sig.integrate(baseline=True, hp=True, rule=IntegrationRules.SIMPSON, fpass=1, n=6)
     rmse = np.sqrt(np.sum((sig.signal - int_sig) ** 2) / len(int_sig))
     assert(rmse < TOL)
@@ -159,19 +159,7 @@ def test_filter(test_data):
     Test the filter function
     """
     x, y, y_noise = test_data
-    sig = SignalProcessing(x, y_noise)
-    sig.filter(10, 4, type_filter="lowpass")
-
-    # compare between 200 and -200 to avoid edge effects
-    rmse = np.sqrt(np.sum((sig.signal[400:-400] - y[400:-400]) ** 2) / len(y[400:-400]))
-    assert(rmse < TOL)
-
-def test_filter(test_data):
-    """
-    Test the filter function
-    """
-    x, y, y_noise = test_data
-    sig = SignalProcessing(x, y_noise)
+    sig = TimeSignalProcessing(x, y_noise)
     sig.filter(10, 4, type_filter="lowpass")
 
     # compare between 200 and -200 to avoid edge effects
@@ -184,10 +172,10 @@ def test_psd(test_data):
     """
     x, y, _ = test_data
     with pytest.raises(ValueError, match="No window defined. Please define a window when initialising SignalProcessing."):
-        sig = SignalProcessing(x, y)
+        sig = TimeSignalProcessing(x, y)
         sig.psd()
 
-    sig = SignalProcessing(x, y, window=Windows.HAMMING, window_size=4000)
+    sig = TimeSignalProcessing(x, y, window=Windows.HAMMING, window_size=4000)
     sig.psd()
 
     # power
@@ -217,7 +205,7 @@ def test_v_eff():
 
     # compute veff
     for i in range(raw.shape[1]):
-        sig = SignalProcessing(time, raw[:, i])
+        sig = TimeSignalProcessing(time, raw[:, i])
         sig.v_eff_SBR()
         np.testing.assert_almost_equal(sig.v_eff, np.array(v_eff)[:, i], 2)
 
@@ -227,7 +215,7 @@ def test_str_representation(test_data):
     """
     # Create signal instance
     x, y, _ = test_data
-    sig = SignalProcessing(x, y, window=Windows.HAMMING, window_size=600)
+    sig = TimeSignalProcessing(x, y, window=Windows.HAMMING, window_size=600)
 
     # Get initial string representation
     str_repr = str(sig)
@@ -266,7 +254,7 @@ def test_spectrogram(test_data):
     Test the spectrogram function
     """
     x, y, _ = test_data
-    sig = SignalProcessing(x, y, window=Windows.HAMMING, window_size=600)
+    sig = TimeSignalProcessing(x, y, window=Windows.HAMMING, window_size=600)
     sig.spectrogram()
 
     # check if signal lenght has been adapted to window size
@@ -294,7 +282,7 @@ def test_reset(test_data):
     """
     # Create signal instance
     x, y, _ = test_data
-    sig = SignalProcessing(x, y, window=Windows.HAMMING, window_size=600)
+    sig = TimeSignalProcessing(x, y, window=Windows.HAMMING, window_size=600)
 
     # Store original signal for comparison
     original_signal = sig.signal.copy()
@@ -340,3 +328,39 @@ def test_reset(test_data):
 
     # Verify string representation shows no operations
     assert "No operations performed yet" in str(sig)
+
+def test_one_third_octave(test_data):
+    """
+    Test the one third octave function
+    """
+    x, y, _ = test_data
+
+    # definition of frequencies used in the test
+    freqs_used = [10, 12.5, 16, 20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250]
+    # compute the power at 20 Hz
+    f_center = 1000 * (2 ** ((-17) / 3))
+    f_max = f_center * (2 ** (1 / 6))
+    f_min = f_center / (2 ** (1 / 6))
+
+    # test FFT
+    sig = TimeSignalProcessing(x, y)
+    sig.fft()
+    sig.one_third_octave_bands()
+
+    assert all(sig.octave_bands_fft == freqs_used)
+
+    idx = np.where((sig.frequency >= f_min) & (sig.frequency < f_max))[0]
+
+    assert sig.octave_bands_fft_power[3] == np.sum(sig.amplitude[idx] ** 2)
+    assert sig.octave_bands_fft[3] == 20
+
+    # test PSDF
+    sig = TimeSignalProcessing(x, y, window=Windows.HAMMING, window_size=4000)
+    sig.psd()
+    sig.one_third_octave_bands()
+    assert all(sig.octave_bands_Pxx == freqs_used)
+
+    idx = np.where((sig.frequency_Pxx >= f_min) & (sig.frequency_Pxx < f_max))[0]
+    delta_freq = sig.frequency_Pxx[1] - sig.frequency_Pxx[0]
+    assert sig.octave_bands_Pxx_power[3] == np.sum(sig.Pxx[idx] * delta_freq)
+    assert sig.octave_bands_Pxx[3] == 20

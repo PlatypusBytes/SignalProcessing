@@ -5,17 +5,14 @@ import numpy.typing as npt
 from scipy import integrate, signal
 from enum import Enum
 
-# octave bands
-BANDS = {"one-third": [[.08, .10],
-                       [.10, .126],
-                       [.126, .16],
-                       [.16, .20],
-                       [.20, .253],
-                       [.253, .32],
-                       [.32, .40],
-                       [.40, .50],
-                       [.50, .63]],
-         }
+
+class FilterDesign(Enum):
+    """
+    Filter design types
+    """
+    BUTTERWORTH = 1
+    CHEBYSHEV = 2
+    ELLIPTIC = 3
 
 class IntegrationRules(Enum):
     """
@@ -37,14 +34,14 @@ class Windows(Enum):
     RECTANGULAR = 'boxcar'
     TRIANG = 'triang'
 
-class SignalProcessing:
+class TimeSignalProcessing:
     """
-    Signal processing class
+    Signal processing class for time signals
     """
     def __init__(self,
                  time: npt.NDArray[np.float64],
                  signal: npt.NDArray[np.float64],
-                 FS: Optional[int] = None,
+                 Fs: Optional[int] = None,
                  window: Optional[Windows] = None,
                  window_size: int = 0):
         """
@@ -52,11 +49,12 @@ class SignalProcessing:
 
         Parameters
         ----------
-        :param time: Time vector
-        :param signal: Signal vector
-        :param FS: Acquisition frequency (optional: default None. FS is computed based on time)
-        :param window: Type of window to use (optional: default None - uses rectangular window for entire signal)
-        :param window_size: Size of the window (optional: default 0 - uses signal length when window is None)
+        :param time (npt.NDArray[np.float64]): Time vector
+        :param signal (npt.NDArray[np.float64]): Signal vector
+        :param Fs (Optional[int]): Acquisition frequency (optional: default None. Fs is computed based on time)
+        :param window (Optional[Windows]): Type of window to use (optional: default None - uses rectangular
+         window for entire signal)
+        :param window_size (int): Size of the window (optional: default 0 - uses signal length when window is None)
         """
         self.time = time
         self.signal = signal
@@ -79,9 +77,9 @@ class SignalProcessing:
         self.operations = []
 
         # acquisition frequency
-        if not FS:
-            FS = int(np.ceil(1 / np.mean(np.diff(time))))
-        self.Fs = FS
+        if not Fs:
+            Fs = int(np.ceil(1 / np.mean(np.diff(time))))
+        self.Fs = Fs
 
         # windowing
         signal_length = len(self.signal)
@@ -156,9 +154,9 @@ class SignalProcessing:
 
         Parameters
         ----------
-        :param window_type: Type of window from Windows enum
-        :param size: Size of the window
-        :return: Window array of specified size
+        :param window_type (Windows): Type of window from Windows enum
+        :param size (int): Size of the window
+        :return (npt.NDArray[np.float64]): Window array of specified size
         """
         if window_type == Windows.RECTANGULAR:
             return np.ones(size)
@@ -183,8 +181,9 @@ class SignalProcessing:
 
         Parameters
         ----------
-        :param nb_points: number of points for FFT (optional: default None)
-        :param half_representation: true if fft should be computed in half representation (optional: default True)
+        :param nb_points (Optional[int]): number of points for FFT (optional: default None)
+        :param half_representation (bool): true if fft should be computed in half representation
+         (optional: default True)
         """
 
         # if window is used, set nfft to window size
@@ -206,7 +205,6 @@ class SignalProcessing:
                 self.window = np.ones(nfft)
                 self.window_size = nfft
                 odd_length = True
-
 
         # Normalize by the sum of the window samples.
         # This compensates for the energy reduction caused by non-rectangular windows, aiming to preserve the
@@ -302,13 +300,13 @@ class SignalProcessing:
 
         Parameters
         ----------
-        :param rule: integration rule (optional: default TRAPEZOID)
-        :param baseline: base line correction (optional: default False)
-        :param moving: moving average correction (optional: default False)
-        :param hp: highpass filter correction at fpass (optional: default False)
-        :param ini_cond: initial conditions. (optional: default 0.0)
-        :param fpass: cut off frequency [Hz]. only used if hp=True (optional: default 0.5)
-        :param n: order of the filter. only used if hp=True (optional: default 6)
+        :param rule (IntegrationRules): integration rule (optional: default TRAPEZOID)
+        :param baseline (bool): base line correction (optional: default False)
+        :param moving (bool): moving average correction (optional: default False)
+        :param hp (bool): highpass filter correction at fpass (optional: default False)
+        :param ini_cond (float): initial conditions. (optional: default 0.0)
+        :param fpass (float): cut off frequency [Hz]. only used if hp=True (optional: default 0.5)
+        :param n (int): order of the filter. only used if hp=True (optional: default 6)
         """
         # mean average correction
         if moving:
@@ -345,29 +343,38 @@ class SignalProcessing:
         self.operations.append(f"Integration ({', '.join(op_details)})")
 
 
-    def filter(self, Fpass: float, N: int, type_filter: str = "lowpass", rp: float = 0.01, rs: int = 60):
+    def filter(self, Fpass: float, N: int, filter_design: FilterDesign = FilterDesign.ELLIPTIC,
+               type_filter: str = "lowpass", rp: float = 0.01, rs: int = 60):
         """
         Filter signal
 
         Parameters
         ----------
-        :param Fpass: cut off frequency [Hz]
-        :param N: order of the filter
-        :param type_filter: type of the filter (optional: default lowpass)
-        :param rp: maximum ripple allowed below unity gain in the passband. Specified in decibels, as a positive number
-                   default is 0.01
-        :param rs: minimum attenuation required in the stop band. Specified in decibels, as a positive number
-                   default is 60
+        :param Fpass (float): cut off frequency [Hz]
+        :param N (int): order of the filter
+        :param filter_design (FilterDesign): filter design (optional: default ELLIPTIC)
+        :param type_filter (str): type of the filter (optional: default lowpass)
+        :param rp (float): maximum ripple allowed below unity gain in the passband. Specified in decibels, as a
+         positive number. (optional: default 0.01)
+        :param rs (int): minimum attenuation required in the stop band. Specified in decibels, as a positive number
+         (optional: default 60)
         """
         # types allowed
-        types = ["lowpass", "highpass"]
+        types = ["lowpass", "highpass", "bandpass"]
 
         # check if filter type is supported
         if type_filter not in types:
             sys.exit(f"ERROR: Type filter '{type_filter}' not available\n"
                      "Filter type must be in {types}")
 
-        z, p, k = signal.ellip(N, rp, rs, Fpass / (self.Fs / 2), btype=type_filter, output='zpk')
+        # design filter
+        if filter_design == FilterDesign.ELLIPTIC:
+            z, p, k = signal.ellip(N, rp, rs, np.array(Fpass) / (self.Fs / 2), btype=type_filter, output='zpk')
+        elif filter_design == FilterDesign.BUTTERWORTH:
+            z, p, k = signal.butter(N, np.array(Fpass) / (self.Fs / 2), btype=type_filter, output='zpk')
+        elif filter_design == FilterDesign.CHEBYSHEV:
+            z, p, k = signal.cheby1(N, rp, np.array(Fpass) / (self.Fs / 2), btype=type_filter, output='zpk')
+
         sos = signal.zpk2sos(z, p, k)
 
         # Applies twice the filter to the signal to avoid phase distortion
@@ -377,31 +384,45 @@ class SignalProcessing:
         self.operations.append(f"Filter ({type_filter}, cutoff: {Fpass} Hz, order: {N})")
 
 
-    def psd(self):
+    def psd(self, detrend: str = "linear", nb_points: Optional[int] = None):
         """
         PSD of signal
+
+        Parameters
+        ----------
+        :param detrend (str): detrend method (optional: default linear)
+        :param nb_points (Optional[int]): number of points for FFT (optional: default None)
         """
+
+        if detrend not in ["linear", False]:
+            raise ValueError("Detrend method not supported. Available methods: ['linear', False]")
 
         # check if window is initialized
         if not self.use_window:
             raise ValueError("No window defined. Please define a window when initialising SignalProcessing.")
 
+        # if nb_points is None: nb_points is window length
+        if nb_points is None:
+            nfft = self.window_size
+        else:
+            nfft = nb_points
+
         # compute PSD using Welch method
-        self.frequency_Pxx, self.Pxx = signal.welch(self.signal, fs=self.Fs, nperseg=self.window_size,
-                                                    window=self.window_type.value, scaling='density')
+        self.frequency_Pxx, self.Pxx = signal.welch(self.signal, fs=self.Fs, nperseg=self.window_size, nfft=nfft,
+                                                    window=self.window_type.value, scaling='density', detrend=detrend)
 
         # Add to operations list
         self.operations.append(f"PSD (window: {self.window_type.name}, size: {self.window_size})")
 
 
-    def v_eff_SBR(self, n: int = 4, tau: int = 0.125):
+    def v_eff_SBR(self, n: int = 4, tau: float = 0.125):
         """
         Compute v_eff of signal based on SBR deel B Hinder voor personen in gebouwen (2006)
 
         Parameters
         ----------
-        :param n:(optional, default = 4) number of time constants
-        :param tau: (optional, default = 0.125) time constant for the exponential decay
+        :param n:(int) number of time constants. (optional: default 4)
+        :param tau: (float) time constant for the exponential decay (optional: default 0.125)
         """
 
         # Create exponential decay function `g` for running RMS calculation
@@ -493,3 +514,59 @@ class SignalProcessing:
 
         # Add to operations list
         self.operations.append(f"Spectrogram (nperseg: {self.window_size}, noverlap: {self.window_size // 8})")
+
+    def one_third_octave_bands(self):
+        """
+        Compute octave bands of the signal
+
+        It uses the base 2 calculation for the one-third octave bands, according to ISO 18405:2017.
+
+        """
+        # ranges of the nominal one-third octave bands according to ISO 18405:2017
+        # https://en.wikipedia.org/wiki/Octave_band
+        initial_frequency_band_number = -20
+        final_frequency_band_number = 33
+        names = ("10", "12.5", "16", "20", "25", "31.5", "40", "50", "63", "80", "100", "125", "160", "200", "250", "315", "400",
+                 "500", "630", "800", "1000", "1250", "1600", "2000", "2500", "3.150", "4000", "5000", "6300", "8000",
+                 "10000", "12500", "16000", "20000")
+
+        # compute centre frequencies of the bands
+        f_centre = 1000 * (2 ** (np.arange(initial_frequency_band_number, final_frequency_band_number) / 3))
+        f_upper = f_centre * (2 ** (1 / 6))
+        f_lower = f_centre / (2 ** (1 / 6))
+
+        # sum the signal for the bands
+        if (self.Pxx is None) and (self.amplitude is None):
+            raise ValueError("No PSD nor FFT computed. Please compute either first.")
+
+        if self.Pxx is not None:
+            # determine the frequency bands
+            idx = np.where((f_lower < np.max(self.frequency_Pxx)) & (f_upper > np.min(self.frequency_Pxx)))[0]
+            if len(idx) == 0:
+                raise ValueError("No frequency bands found in the PSD. Please check the frequency bands.")
+
+            delta_f = self.frequency_Pxx[1] - self.frequency_Pxx[0]
+
+            # compute the PSD for the bands
+            self.octave_bands_Pxx = np.zeros(len(idx))
+            self.octave_bands_Pxx_power = np.zeros(len(idx))
+
+            for i, val in enumerate(idx):
+                self.octave_bands_Pxx[i] = float(names[val])
+                mask = (self.frequency_Pxx >= f_lower[val]) & (self.frequency_Pxx < f_upper[val])
+                self.octave_bands_Pxx_power[i] = np.sum(self.Pxx[mask] * delta_f)
+
+        if self.amplitude is not None:
+            # determine the frequency bands
+            idx = np.where((f_lower < np.max(self.frequency)) & (f_upper > np.min(self.frequency)))[0]
+            if len(idx) == 0:
+                raise ValueError("No frequency bands found in the FFT. Please check the frequency bands.")
+
+            # compute the FFT for the bands
+            self.octave_bands_fft = np.zeros(len(idx))
+            self.octave_bands_fft_power = np.zeros(len(idx))
+
+            for i, val in enumerate(idx):
+                self.octave_bands_fft[i] = float(names[val])
+                mask = (self.frequency >= f_lower[val]) & (self.frequency < f_upper[val])
+                self.octave_bands_fft_power[i] = np.sum(self.amplitude[mask]**2)
