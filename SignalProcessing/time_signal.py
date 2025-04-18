@@ -514,3 +514,59 @@ class TimeSignalProcessing:
 
         # Add to operations list
         self.operations.append(f"Spectrogram (nperseg: {self.window_size}, noverlap: {self.window_size // 8})")
+
+    def one_third_octave_bands(self):
+        """
+        Compute octave bands of the signal
+
+        It uses the base 2 calculation for the one-third octave bands, according to ISO 18405:2017.
+
+        """
+        # ranges of the nominal one-third octave bands according to ISO 18405:2017
+        # https://en.wikipedia.org/wiki/Octave_band
+        initial_frequency_band_number = -20
+        final_frequency_band_number = 33
+        names = ("10", "12.5", "16", "20", "25", "31.5", "40", "50", "63", "80", "100", "125", "160", "200", "250", "315", "400",
+                 "500", "630", "800", "1000", "1250", "1600", "2000", "2500", "3.150", "4000", "5000", "6300", "8000",
+                 "10000", "12500", "16000", "20000")
+
+        # compute centre frequencies of the bands
+        f_centre = 1000 * (2 ** (np.arange(initial_frequency_band_number, final_frequency_band_number) / 3))
+        f_upper = f_centre * (2 ** (1 / 6))
+        f_lower = f_centre / (2 ** (1 / 6))
+
+        # sum the signal for the bands
+        if (self.Pxx is None) and (self.amplitude is None):
+            raise ValueError("No PSD nor FFT computed. Please compute either first.")
+
+        if self.Pxx is not None:
+            # determine the frequency bands
+            idx = np.where((f_lower < np.max(self.frequency_Pxx)) & (f_upper > np.min(self.frequency_Pxx)))[0]
+            if len(idx) == 0:
+                raise ValueError("No frequency bands found in the PSD. Please check the frequency bands.")
+
+            delta_f = self.frequency_Pxx[1] - self.frequency_Pxx[0]
+
+            # compute the PSD for the bands
+            self.octave_bands_Pxx = np.zeros(len(idx))
+            self.octave_bands_Pxx_power = np.zeros(len(idx))
+
+            for i, val in enumerate(idx):
+                self.octave_bands_Pxx[i] = float(names[val])
+                mask = (self.frequency_Pxx >= f_lower[val]) & (self.frequency_Pxx < f_upper[val])
+                self.octave_bands_Pxx_power[i] = np.sum(self.Pxx[mask] * delta_f)
+
+        if self.amplitude is not None:
+            # determine the frequency bands
+            idx = np.where((f_lower < np.max(self.frequency)) & (f_upper > np.min(self.frequency)))[0]
+            if len(idx) == 0:
+                raise ValueError("No frequency bands found in the FFT. Please check the frequency bands.")
+
+            # compute the FFT for the bands
+            self.octave_bands_fft = np.zeros(len(idx))
+            self.octave_bands_fft_power = np.zeros(len(idx))
+
+            for i, val in enumerate(idx):
+                self.octave_bands_fft[i] = float(names[val])
+                mask = (self.frequency >= f_lower[val]) & (self.frequency < f_upper[val])
+                self.octave_bands_fft_power[i] = np.sum(self.amplitude[mask]**2)

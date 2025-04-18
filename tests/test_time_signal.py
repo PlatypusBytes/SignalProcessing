@@ -328,3 +328,39 @@ def test_reset(test_data):
 
     # Verify string representation shows no operations
     assert "No operations performed yet" in str(sig)
+
+def test_one_third_octave(test_data):
+    """
+    Test the one third octave function
+    """
+    x, y, _ = test_data
+
+    # definition of frequencies used in the test
+    freqs_used = [10, 12.5, 16, 20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250]
+    # compute the power at 20 Hz
+    f_center = 1000 * (2 ** ((-17) / 3))
+    f_max = f_center * (2 ** (1 / 6))
+    f_min = f_center / (2 ** (1 / 6))
+
+    # test FFT
+    sig = TimeSignalProcessing(x, y)
+    sig.fft()
+    sig.one_third_octave_bands()
+
+    assert all(sig.octave_bands_fft == freqs_used)
+
+    idx = np.where((sig.frequency >= f_min) & (sig.frequency < f_max))[0]
+
+    assert sig.octave_bands_fft_power[3] == np.sum(sig.amplitude[idx] ** 2)
+    assert sig.octave_bands_fft[3] == 20
+
+    # test PSDF
+    sig = TimeSignalProcessing(x, y, window=Windows.HAMMING, window_size=4000)
+    sig.psd()
+    sig.one_third_octave_bands()
+    assert all(sig.octave_bands_Pxx == freqs_used)
+
+    idx = np.where((sig.frequency_Pxx >= f_min) & (sig.frequency_Pxx < f_max))[0]
+    delta_freq = sig.frequency_Pxx[1] - sig.frequency_Pxx[0]
+    assert sig.octave_bands_Pxx_power[3] == np.sum(sig.Pxx[idx] * delta_freq)
+    assert sig.octave_bands_Pxx[3] == 20
