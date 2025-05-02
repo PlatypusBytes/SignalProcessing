@@ -191,12 +191,22 @@ class TimeSignalProcessing:
             nfft = self.window_size
             sig = self.signal
             odd_length = False
+            normalise_fct = np.sum(self.window)
         else:
             # if nb_points is None: nb_points is signal length
             if nb_points is None:
                 nfft = len(self.signal)
                 sig = self.signal
                 odd_length = False
+                normalise_fct = np.sum(self.window)
+            else:
+                nfft = nb_points
+                sig = np.zeros(nfft)
+                sig[:len(self.signal)] = self.signal
+                odd_length = False
+                self.window = np.ones(nfft)
+                self.window_size = nfft
+                normalise_fct = len(self.signal)
 
             # if length is even
             if nfft % 2 != 0:
@@ -205,11 +215,6 @@ class TimeSignalProcessing:
                 self.window = np.ones(nfft)
                 self.window_size = nfft
                 odd_length = True
-
-        # Normalize by the sum of the window samples.
-        # This compensates for the energy reduction caused by non-rectangular windows, aiming to preserve the
-        # peak amplitude of stationary sinusoids.
-        normalise_fct = np.sum(self.window)
 
         spectrum_w = np.zeros((nfft, self.nb_windows), dtype="complex128")
         hop_size = int(self.window_size * (1 - 0.5))
@@ -224,6 +229,9 @@ class TimeSignalProcessing:
             signal_w = self.window * sig[idx_ini:idx_end]
 
             # fft window signal
+            # Normalize by the sum of the window samples.
+            # This compensates for the energy reduction caused by non-rectangular windows, aiming to preserve the
+            # peak amplitude of stationary sinusoids.
             spectrum_w[:, w] = np.fft.fft(signal_w, nfft) / normalise_fct
 
 

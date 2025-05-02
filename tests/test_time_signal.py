@@ -54,6 +54,34 @@ def test_fft(test_data):
     np.testing.assert_almost_equal(sig.frequency[np.argmax(sig.amplitude[:int(len(sig.amplitude) / 2)])], 2.675, 2)
     np.testing.assert_almost_equal(np.max(sig.amplitude[:int(len(sig.amplitude) / 2)]), 1.137, 2)
 
+def test_fft_nb_points(test_data):
+    """
+    Test the fft function
+    """
+
+    # results half representation
+    x, y, _ = test_data
+    sig = TimeSignalProcessing(x, y)
+    sig.fft(nb_points=2**18)
+
+    # check if signal lenght has been adapted to window size
+    assert len(sig.amplitude) == (2**18)/2
+    assert len(sig.frequency) == (2**18)/2
+
+    np.testing.assert_almost_equal(sig.frequency[np.argmax(sig.amplitude)], FREQ, 2)
+    np.testing.assert_almost_equal(np.max(sig.amplitude), AMP, 2)
+
+    # results full representation
+    sig.fft(nb_points=2**18, half_representation=False)
+
+    # check if signal lenght has been adapted to window size
+    assert len(sig.amplitude) == 2**18
+    assert len(sig.frequency) == 2**18
+
+    np.testing.assert_almost_equal(sig.frequency[np.argmax(sig.amplitude[:int(len(sig.amplitude) / 2)])], FREQ, 2)
+    np.testing.assert_almost_equal(np.max(sig.amplitude[:int(len(sig.amplitude) / 2)]), AMP / 2, 2)
+
+
 def test_fft_window(test_data):
     """
     Test the fft function with window
