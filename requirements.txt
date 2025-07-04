@@ -3,3 +3,4 @@ scipy==1.15.0
 matplotlib==3.10.0
 pytest==8.0.2
 tox==4.13.0
+pre_commit==4.2.0
