@@ -3,13 +3,11 @@ import matplotlib.pylab as plt
 from SignalProcessingTools.space_signal import SpaceSignalProcessing
 import pickle
 
-
 # Create test data
 x = np.linspace(0, 100, 50001)
 omega = 2 * np.pi * 6
 y = 1.75 * np.sin(omega * x)
 y_noise = y + 0.01 * np.sin(120 * x)
-
 
 # Create a SpaceSignalProcessing object and demonstrate basic functionality
 print("----------------------------------------------")
@@ -63,7 +61,6 @@ plt.grid()
 plt.tight_layout()
 plt.show()
 
-
 # Example 2: Computing Hmax parameters
 print("------------------------------------")
 print("EXAMPLE 2: Computing Hmax parameters")
@@ -75,7 +72,7 @@ track_irregularity = (
     0.002 * np.sin(2 * np.pi * 0.1 * x_track) +  # Long wavelength component
     0.001 * np.sin(2 * np.pi * 0.2 * x_track) +  # Medium wavelength component
     0.0005 * np.sin(2 * np.pi * 0.4 * x_track) +  # Short wavelength component
-    0.0002 * np.random.randn(len(x_track))        # Random noise
+    0.0002 * np.random.randn(len(x_track))  # Random noise
 )
 
 sig_hmax = SpaceSignalProcessing(x_track, track_irregularity)

@@ -2,13 +2,11 @@ import numpy as np
 import matplotlib.pylab as plt
 from SignalProcessingTools.time_signal import TimeSignalProcessing, IntegrationRules, Windows
 
-
 # Create test data
 x = np.linspace(0, 100, 50001)
 omega = 2 * np.pi * 6
 y = 1.75 * np.sin(omega * x)
 y_noise = y + 0.01 * np.sin(120 * x)
-
 
 # Create a SignalProcessing object and demonstrate basic functionality
 print("------------------------------------")
@@ -47,12 +45,14 @@ print("RESET signal")
 sig.reset()
 print(sig)
 
-
 # Example 2: Working with windowed signals and PSD
 print("---------------------------------------")
 print("EXAMPLE 2: Windowed processing and PSD")
 print("---------------------------------------")
-sig_window = TimeSignalProcessing(x, y_noise, window=Windows.HAMMING, window_size=4096)
+sig_window = TimeSignalProcessing(x,
+                                  y_noise,
+                                  window=Windows.HAMMING,
+                                  window_size=4096)
 print(sig_window)
 
 # Calculate and plot PSD
@@ -69,8 +69,10 @@ plt.show()
 # Calculate and plot spectrogram
 sig_window.spectrogram()
 plt.figure(figsize=(10, 6))
-plt.pcolormesh(sig_window.time_Sxx, sig_window.frequency_Sxx,
-               10 * np.log10(sig_window.Sxx), shading='gouraud')
+plt.pcolormesh(sig_window.time_Sxx,
+               sig_window.frequency_Sxx,
+               10 * np.log10(sig_window.Sxx),
+               shading='gouraud')
 plt.ylim(0, 20)
 plt.ylabel('Frequency [Hz]')
 plt.xlabel('Time [s]')
@@ -79,7 +81,6 @@ plt.colorbar(label='Intensity [dB]')
 plt.show()
 
 print(sig_window)
-
 
 # Example 3: Signal filtering
 print("---------------------------")
@@ -102,7 +103,9 @@ plt.show()
 sig_filter.filter(10, 4, type_filter="lowpass")
 
 plt.figure(figsize=(10, 6))
-plt.plot(sig_filter.time[:500], sig_filter.signal[:500], label='Filtered signal')
+plt.plot(sig_filter.time[:500],
+         sig_filter.signal[:500],
+         label='Filtered signal')
 plt.plot(x[:500], y[:500], '--', label='Original clean signal')
 plt.xlabel('Time [s]')
 plt.ylabel('Amplitude')
@@ -112,7 +115,6 @@ plt.legend()
 plt.show()
 
 print(sig_filter)
-
 
 # Example 4: Inverse FFT
 print("----------------------")
@@ -137,7 +139,10 @@ sig_ifft.inv_fft()
 
 plt.figure(figsize=(10, 6))
 plt.plot(sig_ifft.time[:500], sig_ifft.signal[:500], label='Original signal')
-plt.plot(sig_ifft.time_inv[:500], sig_ifft.signal_inv[:500], '--', label='Reconstructed signal')
+plt.plot(sig_ifft.time_inv[:500],
+         sig_ifft.signal_inv[:500],
+         '--',
+         label='Reconstructed signal')
 plt.xlabel('Time [s]')
 plt.ylabel('Amplitude')
 plt.title('Signal Reconstruction with Inverse FFT')
@@ -146,10 +151,10 @@ plt.legend()
 plt.show()
 
 # Calculate RMSE between original and reconstructed signals
-rmse = np.sqrt(np.sum((sig_ifft.signal[:500] - sig_ifft.signal_inv[:500]) ** 2) / 500)
+rmse = np.sqrt(
+    np.sum((sig_ifft.signal[:500] - sig_ifft.signal_inv[:500])**2) / 500)
 print(f"RMSE between original and reconstructed signals: {rmse:.6f}")
 print(sig_ifft)
-
 
 # Example 5: Effective velocity calculation using SBR method
 print("-------------------------------------------")
@@ -158,7 +163,8 @@ print("-------------------------------------------")
 
 # Create a vibration signal (using more complex multi-frequency signal)
 t = np.linspace(0, 10, 5001)
-vib_signal = 0.5 * np.sin(2 * np.pi * 2 * t) + 0.3 * np.sin(2 * np.pi * 8 * t) + 0.2 * np.sin(2 * np.pi * 15 * t)
+vib_signal = 0.5 * np.sin(2 * np.pi * 2 * t) + 0.3 * np.sin(
+    2 * np.pi * 8 * t) + 0.2 * np.sin(2 * np.pi * 15 * t)
 
 sig_veff = TimeSignalProcessing(t, vib_signal)
 # Calculate effective velocity
@@ -175,7 +181,6 @@ plt.legend()
 plt.show()
 
 print(sig_veff)
-
 
 # Example 6: Different integration rules
 print("---------------------------------------")
@@ -196,7 +201,8 @@ sig_simp.integrate(rule=IntegrationRules.SIMPSON, baseline=True)
 
 # Analytical integration for comparison (integral of sin(2πt) is -cos(2πt)/(2π))
 vel_analytical = -np.cos(2 * np.pi * 1 * t_acc) / (2 * np.pi)
-vel_analytical = vel_analytical - np.mean(vel_analytical)  # baseline correction for comparison
+vel_analytical = vel_analytical - np.mean(
+    vel_analytical)  # baseline correction for comparison
 
 plt.figure(figsize=(10, 6))
 plt.plot(t_acc, vel_analytical, 'k-', label='Analytical solution')
