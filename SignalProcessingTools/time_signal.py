@@ -110,7 +110,7 @@ class TimeSignalProcessing:
             # pad signal at the end if necessary to get full windows
             if signal_length % window_size != 0:
                 self.signal = np.append(self.signal, np.zeros(window_size - (signal_length % window_size)))
-                self.time = np.append(self.time, np.zeros(window_size - (signal_length % window_size)))
+                self.time = np.append(self.time, self.time[-1]+np.cumsum(np.ones(window_size - (signal_length % window_size))*(1/Fs)))
                 self.operations.append(f"Signal padded with zeros (original length: {signal_length}, new length: {len(self.signal)})")
 
     def __str__(self) -> str:

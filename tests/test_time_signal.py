@@ -4,6 +4,7 @@ import numpy as np
 from SignalProcessingTools.time_signal import TimeSignalProcessing, IntegrationRules, Windows
 
 TOL = 3e-3
+FLOAT_TOL = 1e-12
 FREQ = 6
 AMP = 1.75
 
@@ -214,6 +215,11 @@ def test_psd(test_data):
 
     np.testing.assert_almost_equal(sig.frequency_Pxx[np.argmax(sig.Pxx)], FREQ, 2)
     assert (np.abs((np.max(sig.Pxx) - peak_psd) / peak_psd) < 0.035)
+
+    # test the time interpolation
+    assert len(sig.time) == np.ceil(50001/4000)*4000
+    assert ((np.diff(sig.time)-1/500) < FLOAT_TOL).all()
+
 
 def test_v_eff():
     """
