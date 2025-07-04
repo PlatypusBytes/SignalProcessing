@@ -14,12 +14,14 @@ class FilterDesign(Enum):
     CHEBYSHEV = 2
     ELLIPTIC = 3
 
+
 class IntegrationRules(Enum):
     """
     Integration rules
     """
     TRAPEZOID = 1
     SIMPSON = 2
+
 
 class Windows(Enum):
     """
@@ -34,10 +36,12 @@ class Windows(Enum):
     RECTANGULAR = 'boxcar'
     TRIANG = 'triang'
 
+
 class TimeSignalProcessing:
     """
     Signal processing class for time signals
     """
+
     def __init__(self,
                  time: npt.NDArray[np.float64],
                  signal: npt.NDArray[np.float64],
@@ -71,8 +75,7 @@ class TimeSignalProcessing:
         self.Sxx = None
         self.frequency_Sxx = None
         self.time_Sxx = None
-        self.fft_settings = {"nb_points": None,
-                             "half_representation": False}
+        self.fft_settings = {"nb_points": None, "half_representation": False}
         # Track operations performed on the signal
         self.operations = []
 
@@ -93,25 +96,38 @@ class TimeSignalProcessing:
             self.use_window = False
         else:
             if window_size == 0:
-                raise ValueError("When using a window the `window_size` must be specified")
+                raise ValueError(
+                    "When using a window the `window_size` must be specified")
             if window_size % 2 != 0:
                 raise ValueError("Window length must be even")
             if window not in Windows:
-                raise ValueError(f"Window type {window} not supported. Available types: {list(Windows)}")
+                raise ValueError(
+                    f"Window type {window} not supported. Available types: {list(Windows)}"
+                )
             if window_size > signal_length:
-                raise ValueError(f"Window length ({window_size}) cannot be greater than signal length ({signal_length}).")
+                raise ValueError(
+                    f"Window length ({window_size}) cannot be greater than signal length ({signal_length})."
+                )
 
             self.window = self.__create_window(window, window_size)
             self.window_size = window_size
             self.window_type = window
-            self.nb_windows = int(np.ceil((signal_length / window_size) * 2 - 2))
+            self.nb_windows = int(
+                np.ceil((signal_length / window_size) * 2 - 2))
             self.use_window = True
 
             # pad signal at the end if necessary to get full windows
             if signal_length % window_size != 0:
-                self.signal = np.append(self.signal, np.zeros(window_size - (signal_length % window_size)))
-                self.time = np.append(self.time, np.zeros(window_size - (signal_length % window_size)))
-                self.operations.append(f"Signal padded with zeros (original length: {signal_length}, new length: {len(self.signal)})")
+                self.signal = np.append(
+                    self.signal,
+                    np.zeros(window_size - (signal_length % window_size)))
+                self.time = np.append(
+                    self.time, self.time[-1] + np.cumsum(
+                        np.ones(window_size - (signal_length % window_size)) *
+                        (1 / Fs)))
+                self.operations.append(
+                    f"Signal padded with zeros (original length: {signal_length}, new length: {len(self.signal)})"
+                )
 
     def __str__(self) -> str:
         """
@@ -148,7 +164,8 @@ class TimeSignalProcessing:
         return "\n".join(info)
 
     @staticmethod
-    def __create_window(window_type: Windows, size: int) -> npt.NDArray[np.float64]:
+    def __create_window(window_type: Windows,
+                        size: int) -> npt.NDArray[np.float64]:
         """
         Create a window array of specified type and size
 
@@ -234,10 +251,10 @@ class TimeSignalProcessing:
             # peak amplitude of stationary sinusoids.
             spectrum_w[:, w] = np.fft.fft(signal_w, nfft) / normalise_fct
 
-
         self.amplitude = np.mean(np.abs(spectrum_w), axis=1)
         # self.phase = np.unwrap(np.angle(np.mean(spectrum_w, axis=1)))
-        self.phase = np.angle(np.mean(np.exp(1j * np.angle(spectrum_w)), axis=1))
+        self.phase = np.angle(
+            np.mean(np.exp(1j * np.angle(spectrum_w)), axis=1))
 
         # compute frequency
         self.frequency = np.linspace(0, 1, nfft) * self.Fs
@@ -249,9 +266,11 @@ class TimeSignalProcessing:
             self.phase = self.phase[:int(nfft / 2)]
 
         # FFT settings: needed to perform inverse FFT
-        self.fft_settings = {"nb_points": nfft,
-                             "half_representation": half_representation,
-                             "odd_length": odd_length}
+        self.fft_settings = {
+            "nb_points": nfft,
+            "half_representation": half_representation,
+            "odd_length": odd_length
+        }
 
         # Add to operations list
         op_info = f"FFT (points: {nfft}, half representation: {half_representation})"
@@ -275,7 +294,8 @@ class TimeSignalProcessing:
             "Please compute FFT with full representation.")
 
         if self.use_window:
-            raise ValueError("Cannot perform inverse FFT on the windowed signal.")
+            raise ValueError(
+                "Cannot perform inverse FFT on the windowed signal.")
 
         # get FFT settings
         odd_length = self.fft_settings["odd_length"]
@@ -290,7 +310,8 @@ class TimeSignalProcessing:
         # inverse of the FFT signal
         self.signal_inv = np.real(spectrum_inv) * len(spectrum)
         # time from frequency
-        self.time_inv = np.cumsum(np.ones(len(spectrum)) * 1 / self.Fs) - 1 / self.Fs
+        self.time_inv = np.cumsum(
+            np.ones(len(spectrum)) * 1 / self.Fs) - 1 / self.Fs
 
         if odd_length:
             # remove last sample
@@ -298,11 +319,17 @@ class TimeSignalProcessing:
             self.time_inv = self.time_inv[:-1]
 
         # Add to operations list
-        self.operations.append("Inverse FFT" + (" with windowing" if self.use_window else ""))
+        self.operations.append("Inverse FFT" +
+                               (" with windowing" if self.use_window else ""))
 
-    def integrate(self, rule: IntegrationRules = IntegrationRules.TRAPEZOID,
-                  baseline: bool = False, moving: bool = False, hp: bool = False, ini_cond: float = 0.,
-                  fpass: float = 0.5, n: int = 6):
+    def integrate(self,
+                  rule: IntegrationRules = IntegrationRules.TRAPEZOID,
+                  baseline: bool = False,
+                  moving: bool = False,
+                  hp: bool = False,
+                  ini_cond: float = 0.,
+                  fpass: float = 0.5,
+                  n: int = 6):
         """
         Numerical integration of signal
 
@@ -322,9 +349,13 @@ class TimeSignalProcessing:
 
         # integration rule
         if rule == IntegrationRules.TRAPEZOID:
-            self.signal = integrate.cumulative_trapezoid(self.signal, self.time, initial=ini_cond)
+            self.signal = integrate.cumulative_trapezoid(self.signal,
+                                                         self.time,
+                                                         initial=ini_cond)
         elif rule == IntegrationRules.SIMPSON:
-            self.signal = integrate.cumulative_simpson(self.signal, x=self.time, initial=ini_cond)
+            self.signal = integrate.cumulative_simpson(self.signal,
+                                                       x=self.time,
+                                                       initial=ini_cond)
         else:
             sys.exit("Integration rule not supported")
 
@@ -346,13 +377,18 @@ class TimeSignalProcessing:
         if moving:
             op_details.append("moving average correction")
         if hp:
-            op_details.append(f"highpass filter (cutoff: {fpass} Hz, order: {n})")
+            op_details.append(
+                f"highpass filter (cutoff: {fpass} Hz, order: {n})")
 
         self.operations.append(f"Integration ({', '.join(op_details)})")
 
-
-    def filter(self, Fpass: float, N: int, filter_design: FilterDesign = FilterDesign.ELLIPTIC,
-               type_filter: str = "lowpass", rp: float = 0.01, rs: int = 60):
+    def filter(self,
+               Fpass: float,
+               N: int,
+               filter_design: FilterDesign = FilterDesign.ELLIPTIC,
+               type_filter: str = "lowpass",
+               rp: float = 0.01,
+               rs: int = 60):
         """
         Filter signal
 
@@ -377,11 +413,23 @@ class TimeSignalProcessing:
 
         # design filter
         if filter_design == FilterDesign.ELLIPTIC:
-            z, p, k = signal.ellip(N, rp, rs, np.array(Fpass) / (self.Fs / 2), btype=type_filter, output='zpk')
+            z, p, k = signal.ellip(N,
+                                   rp,
+                                   rs,
+                                   np.array(Fpass) / (self.Fs / 2),
+                                   btype=type_filter,
+                                   output='zpk')
         elif filter_design == FilterDesign.BUTTERWORTH:
-            z, p, k = signal.butter(N, np.array(Fpass) / (self.Fs / 2), btype=type_filter, output='zpk')
+            z, p, k = signal.butter(N,
+                                    np.array(Fpass) / (self.Fs / 2),
+                                    btype=type_filter,
+                                    output='zpk')
         elif filter_design == FilterDesign.CHEBYSHEV:
-            z, p, k = signal.cheby1(N, rp, np.array(Fpass) / (self.Fs / 2), btype=type_filter, output='zpk')
+            z, p, k = signal.cheby1(N,
+                                    rp,
+                                    np.array(Fpass) / (self.Fs / 2),
+                                    btype=type_filter,
+                                    output='zpk')
 
         sos = signal.zpk2sos(z, p, k)
 
@@ -389,8 +437,8 @@ class TimeSignalProcessing:
         self.signal = signal.sosfiltfilt(sos, self.signal)
 
         # Add to operations list
-        self.operations.append(f"Filter ({type_filter}, cutoff: {Fpass} Hz, order: {N})")
-
+        self.operations.append(
+            f"Filter ({type_filter}, cutoff: {Fpass} Hz, order: {N})")
 
     def psd(self, detrend: str = "linear", nb_points: Optional[int] = None):
         """
@@ -403,11 +451,15 @@ class TimeSignalProcessing:
         """
 
         if detrend not in ["linear", False]:
-            raise ValueError("Detrend method not supported. Available methods: ['linear', False]")
+            raise ValueError(
+                "Detrend method not supported. Available methods: ['linear', False]"
+            )
 
         # check if window is initialized
         if not self.use_window:
-            raise ValueError("No window defined. Please define a window when initialising SignalProcessing.")
+            raise ValueError(
+                "No window defined. Please define a window when initialising SignalProcessing."
+            )
 
         # if nb_points is None: nb_points is window length
         if nb_points is None:
@@ -416,12 +468,18 @@ class TimeSignalProcessing:
             nfft = nb_points
 
         # compute PSD using Welch method
-        self.frequency_Pxx, self.Pxx = signal.welch(self.signal, fs=self.Fs, nperseg=self.window_size, nfft=nfft,
-                                                    window=self.window_type.value, scaling='density', detrend=detrend)
+        self.frequency_Pxx, self.Pxx = signal.welch(
+            self.signal,
+            fs=self.Fs,
+            nperseg=self.window_size,
+            nfft=nfft,
+            window=self.window_type.value,
+            scaling='density',
+            detrend=detrend)
 
         # Add to operations list
-        self.operations.append(f"PSD (window: {self.window_type.name}, size: {self.window_size})")
-
+        self.operations.append(
+            f"PSD (window: {self.window_type.name}, size: {self.window_size})")
 
     def v_eff_SBR(self, n: int = 4, tau: float = 0.125):
         """
@@ -438,13 +496,12 @@ class TimeSignalProcessing:
         qsi = np.linspace(0, n * tau, int(n * tau * self.Fs + 1))
         g = fout * np.exp(-qsi / tau)
 
-
         # Frequency weighting parameters
         v0 = 1 / 1000  # Reference velocity [m/s]
-        f0 = 5.6       # Reference frequency [Hz]
+        f0 = 5.6  # Reference frequency [Hz]
 
         # Handle even/odd signal length for FFT
-        if self.signal.shape[0]  % 2 != 0:
+        if self.signal.shape[0] % 2 != 0:
             nv1 = int(self.signal.shape[0] / 2 + 0.5)
             nv2 = int(self.signal.shape[0] / 2 - 0.5)
         else:
@@ -456,25 +513,25 @@ class TimeSignalProcessing:
         freq = np.arange(df, (nv1 + 1) * df, df)
 
         # Create high-pass weighting filter (human perception curve)
-        Hv = (1 / v0) * 1 / (np.sqrt(1 + (f0 / freq) ** 2))
+        Hv = (1 / v0) * 1 / (np.sqrt(1 + (f0 / freq)**2))
         Hv = np.append(0, Hv)  # Add DC component
 
         # Create low-pass filter with 50 Hz cutoff
         cut_off_number = int(np.ceil(50 / df))
         if cut_off_number < nv1:
             Hv2 = np.zeros(Hv.shape[0])
-            Hv2[:cut_off_number+1] = 1
+            Hv2[:cut_off_number + 1] = 1
         else:
             Hv2 = np.ones(Hv.shape[0])
 
         # Applies the frequency weighting functions
         Fv = np.fft.fft(self.signal)
-        Fhv = Hv2 * Hv * Fv[:nv1+1]
+        Fhv = Hv2 * Hv * Fv[:nv1 + 1]
         Fv = np.append(Fhv, np.flipud(np.conj(Fhv[1:nv2])))
         v_eff = np.real(np.fft.ifft(Fv))
 
         # moving root-mean-square through convolution with the exponential decay function `g`
-        v_eff = np.sqrt( np.convolve(v_eff**2, g) * (1 / self.Fs) /tau)
+        v_eff = np.sqrt(np.convolve(v_eff**2, g) * (1 / self.Fs) / tau)
 
         self.v_eff = v_eff[:self.signal.shape[0]]
 
@@ -514,14 +571,19 @@ class TimeSignalProcessing:
         Compute spectrogram of signal
         """
         # compute spectrogram
-        f, t, Sxx = signal.spectrogram(self.signal, fs=self.Fs, window=self.window_type.value,
-                                       nperseg=self.window_size, noverlap=self.window_size // 8)
+        f, t, Sxx = signal.spectrogram(self.signal,
+                                       fs=self.Fs,
+                                       window=self.window_type.value,
+                                       nperseg=self.window_size,
+                                       noverlap=self.window_size // 8)
         self.Sxx = Sxx
         self.frequency_Sxx = f
         self.time_Sxx = t
 
         # Add to operations list
-        self.operations.append(f"Spectrogram (nperseg: {self.window_size}, noverlap: {self.window_size // 8})")
+        self.operations.append(
+            f"Spectrogram (nperseg: {self.window_size}, noverlap: {self.window_size // 8})"
+        )
 
     def one_third_octave_bands(self):
         """
@@ -534,24 +596,31 @@ class TimeSignalProcessing:
         # https://en.wikipedia.org/wiki/Octave_band
         initial_frequency_band_number = -20
         final_frequency_band_number = 33
-        names = ("10", "12.5", "16", "20", "25", "31.5", "40", "50", "63", "80", "100", "125", "160", "200", "250", "315", "400",
-                 "500", "630", "800", "1000", "1250", "1600", "2000", "2500", "3.150", "4000", "5000", "6300", "8000",
-                 "10000", "12500", "16000", "20000")
+        names = ("10", "12.5", "16", "20", "25", "31.5", "40", "50", "63",
+                 "80", "100", "125", "160", "200", "250", "315", "400", "500",
+                 "630", "800", "1000", "1250", "1600", "2000", "2500", "3.150",
+                 "4000", "5000", "6300", "8000", "10000", "12500", "16000",
+                 "20000")
 
         # compute centre frequencies of the bands
-        f_centre = 1000 * (2 ** (np.arange(initial_frequency_band_number, final_frequency_band_number) / 3))
-        f_upper = f_centre * (2 ** (1 / 6))
-        f_lower = f_centre / (2 ** (1 / 6))
+        f_centre = 1000 * (2**(np.arange(initial_frequency_band_number,
+                                         final_frequency_band_number) / 3))
+        f_upper = f_centre * (2**(1 / 6))
+        f_lower = f_centre / (2**(1 / 6))
 
         # sum the signal for the bands
         if (self.Pxx is None) and (self.amplitude is None):
-            raise ValueError("No PSD nor FFT computed. Please compute either first.")
+            raise ValueError(
+                "No PSD nor FFT computed. Please compute either first.")
 
         if self.Pxx is not None:
             # determine the frequency bands
-            idx = np.where((f_lower < np.max(self.frequency_Pxx)) & (f_upper > np.min(self.frequency_Pxx)))[0]
+            idx = np.where((f_lower < np.max(self.frequency_Pxx))
+                           & (f_upper > np.min(self.frequency_Pxx)))[0]
             if len(idx) == 0:
-                raise ValueError("No frequency bands found in the PSD. Please check the frequency bands.")
+                raise ValueError(
+                    "No frequency bands found in the PSD. Please check the frequency bands."
+                )
 
             delta_f = self.frequency_Pxx[1] - self.frequency_Pxx[0]
 
@@ -561,14 +630,19 @@ class TimeSignalProcessing:
 
             for i, val in enumerate(idx):
                 self.octave_bands_Pxx[i] = float(names[val])
-                mask = (self.frequency_Pxx >= f_lower[val]) & (self.frequency_Pxx < f_upper[val])
-                self.octave_bands_Pxx_power[i] = np.sum(self.Pxx[mask] * delta_f)
+                mask = (self.frequency_Pxx
+                        >= f_lower[val]) & (self.frequency_Pxx < f_upper[val])
+                self.octave_bands_Pxx_power[i] = np.sum(self.Pxx[mask] *
+                                                        delta_f)
 
         if self.amplitude is not None:
             # determine the frequency bands
-            idx = np.where((f_lower < np.max(self.frequency)) & (f_upper > np.min(self.frequency)))[0]
+            idx = np.where((f_lower < np.max(self.frequency))
+                           & (f_upper > np.min(self.frequency)))[0]
             if len(idx) == 0:
-                raise ValueError("No frequency bands found in the FFT. Please check the frequency bands.")
+                raise ValueError(
+                    "No frequency bands found in the FFT. Please check the frequency bands."
+                )
 
             # compute the FFT for the bands
             self.octave_bands_fft = np.zeros(len(idx))
@@ -576,5 +650,7 @@ class TimeSignalProcessing:
 
             for i, val in enumerate(idx):
                 self.octave_bands_fft[i] = float(names[val])
-                mask = (self.frequency >= f_lower[val]) & (self.frequency < f_upper[val])
-                self.octave_bands_fft_power[i] = np.sum(self.amplitude[mask]**2)
+                mask = (self.frequency >= f_lower[val]) & (self.frequency
+                                                           < f_upper[val])
+                self.octave_bands_fft_power[i] = np.sum(
+                    self.amplitude[mask]**2)

@@ -8,7 +8,11 @@ class SpaceSignalProcessing:
     """
     SignalProcessing class for processing signals in space.
     """
-    def __init__(self, x: npt.NDArray[np.float64], values: npt.NDArray[np.float64], Fs: Optional[float] = None):
+
+    def __init__(self,
+                 x: npt.NDArray[np.float64],
+                 values: npt.NDArray[np.float64],
+                 Fs: Optional[float] = None):
         """
         Initializes the ProcessSignal object.
 
@@ -40,7 +44,6 @@ class SpaceSignalProcessing:
         self.max_fast = None
         self.max_fast_Dx = None
 
-
     def compute_track_longitudinal_levels(self):
         """
         Computes the track longitudinal levels, following EN 13848-1:2006.
@@ -53,20 +56,34 @@ class SpaceSignalProcessing:
         - D3: 70m < lambda <= 150m (1/150 Hz < f <= 1/70 Hz)
         """
 
-        sig = TimeSignalProcessing(self.coordinates, self.signal_raw, Fs=self.fs)
-        sig.filter([1/5., 1.], 4, type_filter="bandpass", filter_design=FilterDesign.BUTTERWORTH)
+        sig = TimeSignalProcessing(self.coordinates,
+                                   self.signal_raw,
+                                   Fs=self.fs)
+        sig.filter([1 / 5., 1.],
+                   4,
+                   type_filter="bandpass",
+                   filter_design=FilterDesign.BUTTERWORTH)
         self.d0 = sig.signal
 
         sig.reset()
-        sig.filter([1/25., 1/3.], 4, type_filter="bandpass", filter_design=FilterDesign.BUTTERWORTH)
+        sig.filter([1 / 25., 1 / 3.],
+                   4,
+                   type_filter="bandpass",
+                   filter_design=FilterDesign.BUTTERWORTH)
         self.d1 = sig.signal
         sig.reset()
 
-        sig.filter([1/70., 1/25.], 4, type_filter="bandpass", filter_design=FilterDesign.BUTTERWORTH)
+        sig.filter([1 / 70., 1 / 25.],
+                   4,
+                   type_filter="bandpass",
+                   filter_design=FilterDesign.BUTTERWORTH)
         self.d2 = sig.signal
         sig.reset()
 
-        sig.filter([1/150., 1/70.], 4, type_filter="bandpass", filter_design=FilterDesign.BUTTERWORTH)
+        sig.filter([1 / 150., 1 / 70.],
+                   4,
+                   type_filter="bandpass",
+                   filter_design=FilterDesign.BUTTERWORTH)
         self.d3 = sig.signal
         sig.reset()
 
@@ -82,22 +99,23 @@ class SpaceSignalProcessing:
         """
 
         # octave bands used for the processing
-        one_third_octave_bands = [[.08, .10],
-                                  [.10, .126],
-                                  [.126, .16],
-                                  [.16, .20],
-                                  [.20, .253],
-                                  [.253, .32],
-                                  [.32, .40],
-                                  [.40, .50],
-                                  [.50, .63],
-                                  ]
-
+        one_third_octave_bands = [
+            [.08, .10],
+            [.10, .126],
+            [.126, .16],
+            [.16, .20],
+            [.20, .253],
+            [.253, .32],
+            [.32, .40],
+            [.40, .50],
+            [.50, .63],
+        ]
 
         # setting for the processing
         self.DXmaxFast = 1
         nb_fft_min = 256  # minimum number of samples for the power spectral density
-        derivative = [0, 0, 0, 2, 2, 2, 2, 2, 2]  # number of times that each frequency band is derived
+        derivative = [0, 0, 0, 2, 2, 2, 2, 2,
+                      2]  # number of times that each frequency band is derived
 
         # RMS of the square root of the power spectral density
         self.rms_bands = np.zeros(len(one_third_octave_bands))
@@ -111,26 +129,34 @@ class SpaceSignalProcessing:
             self.signal = self.signal_raw * 1000
 
         # compute the power spectral density
-        n_fft = int(np.max([2 ** (np.ceil(np.log2(len(self.signal)))), nb_fft_min]))
+        n_fft = int(
+            np.max([2**(np.ceil(np.log2(len(self.signal)))), nb_fft_min]))
         # if signal is odd length, add a zero to make it even
         if len(self.signal) % 2 != 0:
             signal = np.append(self.signal, 0)
-            coordinates = np.append(self.coordinates, self.coordinates[-1] + (self.coordinates[1] - self.coordinates[0]))
+            coordinates = np.append(
+                self.coordinates, self.coordinates[-1] +
+                (self.coordinates[1] - self.coordinates[0]))
         else:
             signal = self.signal
             coordinates = self.coordinates
-        sig = TimeSignalProcessing(coordinates, signal, Fs=self.fs, window=Windows.HAMMING,
+        sig = TimeSignalProcessing(coordinates,
+                                   signal,
+                                   Fs=self.fs,
+                                   window=Windows.HAMMING,
                                    window_size=len(signal))
         sig.psd(nb_points=n_fft, detrend=False)
 
         # compute the rsm psd
-        self.__rms_effective(sig.frequency_Pxx, sig.Pxx, one_third_octave_bands, derivative)
+        self.__rms_effective(sig.frequency_Pxx, sig.Pxx,
+                             one_third_octave_bands, derivative)
         # compute the effective values
         self.__effective_values(one_third_octave_bands, derivative)
 
-
-    def __rms_effective(self, frequency: npt.NDArray[np.float64], Pxx: npt.NDArray[np.float64],
-                        one_third_octave_bands: List[Tuple[float, float]], derivative: List[int]):
+    def __rms_effective(self, frequency: npt.NDArray[np.float64],
+                        Pxx: npt.NDArray[np.float64],
+                        one_third_octave_bands: List[Tuple[float, float]],
+                        derivative: List[int]):
         """
         Computes RMS square root of power spectral density
 
@@ -148,10 +174,13 @@ class SpaceSignalProcessing:
         for i, band in enumerate(one_third_octave_bands):
             # find indexes where the bands exist
             idx = np.where((frequency >= band[0]) & (frequency < band[1]))[0]
-            Pxx[idx] = (2 * np.pi * frequency[idx]) ** (2 * derivative[i]) * Pxx[idx]
+            Pxx[idx] = (2 * np.pi * frequency[idx])**(2 *
+                                                      derivative[i]) * Pxx[idx]
             self.rms_bands[i] = np.sqrt(np.sum(Pxx[idx] * delta_f))
 
-    def __effective_values(self, one_third_octave_bands: List[Tuple[float, float]], derivative: List[int]):
+    def __effective_values(self, one_third_octave_bands: List[Tuple[float,
+                                                                    float]],
+                           derivative: List[int]):
         """
         Computes the effective values of the signal
 
@@ -170,8 +199,13 @@ class SpaceSignalProcessing:
 
         for i, band in enumerate(one_third_octave_bands):
             derivative_value = derivative[i]
-            sig = TimeSignalProcessing(self.coordinates, self.signal, Fs=self.fs)
-            sig.filter(np.array(band), N=3, type_filter="bandpass", filter_design=FilterDesign.BUTTERWORTH)
+            sig = TimeSignalProcessing(self.coordinates,
+                                       self.signal,
+                                       Fs=self.fs)
+            sig.filter(np.array(band),
+                       N=3,
+                       type_filter="bandpass",
+                       filter_design=FilterDesign.BUTTERWORTH)
             new_signal = sig.signal
 
             while derivative_value != 0:
@@ -181,7 +215,8 @@ class SpaceSignalProcessing:
             ksi = np.linspace(0, n * tau, int(n * tau / dx + 1))
             g = fout * np.exp(-ksi / tau)
 
-            convoluted_signal = np.sqrt(np.convolve(new_signal**2, g) * dx / tau)
+            convoluted_signal = np.sqrt(
+                np.convolve(new_signal**2, g) * dx / tau)
             self.max_fast[i] = np.max(convoluted_signal)
             idx = np.floor((len(self.signal) - np.floor(self.DXmaxFast / dx)) / 2) + \
                   np.linspace(0, np.floor(self.DXmaxFast / dx)-1, int(np.floor(self.DXmaxFast / dx)))
