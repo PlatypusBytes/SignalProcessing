@@ -500,24 +500,24 @@ class TimeSignalProcessing:
         v0 = 1 / 1000  # Reference velocity [m/s]
         f0 = 5.6  # Reference frequency [Hz]
 
-        # Handle even/odd signal length for FFT
+        # Handle even/odd signal length
         if self.signal.shape[0] % 2 != 0:
-            nv1 = int(self.signal.shape[0] / 2 + 0.5)
-            nv2 = int(self.signal.shape[0] / 2 - 0.5)
+            sig = np.append(self.signal, 0.)
         else:
-            nv1 = int(self.signal.shape[0] / 2)
-            nv2 = int(self.signal.shape[0] / 2)
+            sig = self.signal
+        nv1 = int(sig.shape[0] / 2)
+        nv2 = int(sig.shape[0] / 2)
 
         # Calculate frequency resolution
-        df = 1 / (1 / self.Fs * self.signal.shape[0])
+        df = 1 / (1 / self.Fs * sig.shape[0])
         freq = np.arange(df, (nv1 + 1) * df, df)
 
         # Create high-pass weighting filter (human perception curve)
         Hv = (1 / v0) * 1 / (np.sqrt(1 + (f0 / freq)**2))
         Hv = np.append(0, Hv)  # Add DC component
 
-        # Create low-pass filter with 50 Hz cutoff
-        cut_off_number = int(np.ceil(50 / df))
+        # Create low-pass filter with 80 Hz cutoff
+        cut_off_number = int(np.ceil(80 / df))
         if cut_off_number < nv1:
             Hv2 = np.zeros(Hv.shape[0])
             Hv2[:cut_off_number + 1] = 1
@@ -525,7 +525,7 @@ class TimeSignalProcessing:
             Hv2 = np.ones(Hv.shape[0])
 
         # Applies the frequency weighting functions
-        Fv = np.fft.fft(self.signal)
+        Fv = np.fft.fft(sig)
         Fhv = Hv2 * Hv * Fv[:nv1 + 1]
         Fv = np.append(Fhv, np.flipud(np.conj(Fhv[1:nv2])))
         v_eff = np.real(np.fft.ifft(Fv))

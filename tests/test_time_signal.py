@@ -287,7 +287,6 @@ def test_v_eff():
         sig.v_eff_SBR()
         np.testing.assert_almost_equal(sig.v_eff, np.array(v_eff)[:, i], 2)
 
-
 def test_str_representation(test_data):
     """
     Test the __str__ method to verify operations are tracked correctly
