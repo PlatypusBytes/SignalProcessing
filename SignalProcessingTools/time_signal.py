@@ -516,9 +516,17 @@ class TimeSignalProcessing:
         Hv = (1 / v0) * 1 / (np.sqrt(1 + (f0 / freq)**2))
         Hv = np.append(0, Hv)  # Add DC component
 
+        # Create low-pass filter with 80 Hz cutoff
+        cut_off_number = int(np.ceil(80 / df))
+        if cut_off_number < nv1:
+            Hv2 = np.zeros(Hv.shape[0])
+            Hv2[:cut_off_number + 1] = 1
+        else:
+            Hv2 = np.ones(Hv.shape[0])
+
         # Applies the frequency weighting functions
         Fv = np.fft.fft(sig)
-        Fhv = Hv * Fv[:nv1 + 1]
+        Fhv = Hv2 * Hv * Fv[:nv1 + 1]
         Fv = np.append(Fhv, np.flipud(np.conj(Fhv[1:nv2])))
         v_eff = np.real(np.fft.ifft(Fv))
 
