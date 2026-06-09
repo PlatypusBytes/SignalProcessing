@@ -282,11 +282,12 @@ def test_v_eff():
     time = np.linspace(0, (raw.shape[0] - 1) / 500, raw.shape[0])
 
     # compute veff
+    data = []
     for i in range(raw.shape[1]):
         sig = TimeSignalProcessing(time, raw[:, i])
         sig.v_eff_SBR()
+        data.append(sig.v_eff)
         np.testing.assert_almost_equal(sig.v_eff, np.array(v_eff)[:, i], 2)
-
 
 def test_str_representation(test_data):
     """
