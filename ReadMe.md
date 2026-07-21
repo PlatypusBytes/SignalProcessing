@@ -52,14 +52,14 @@ pip install -e .
 #### FFT and signal integration
 ```python
 import numpy as np
-from SignalProcessingTools.time_signal import SignalProcessing, Windows
+from SignalProcessingTools.time_signal import TimeSignalProcessing, Windows
 
 # Create a test signal
 t = np.linspace(0, 10, 5001)
 y = 1.75 * np.sin(2 * np.pi * 6 * t)
 
 # Initialize the signal processor
-sig = SignalProcessing(t, y)
+sig = TimeSignalProcessing(t, y)
 
 # Perform FFT
 sig.fft()
@@ -72,7 +72,7 @@ sig.integrate(baseline=True, hp=True, fpass=1, n=6)
 
 ```python
 # Create a signal processor with Hamming window
-sig = SignalProcessing(t, y, window=Windows.HAMMING, window_size=4096)
+sig = TimeSignalProcessing(t, y, window=Windows.HAMMING, window_size=4096)
 
 # Calculate Power Spectral Density
 sig.psd()
@@ -101,7 +101,7 @@ sig.v_eff_SBR()
 
 ```python
 import numpy as np
-from SignalProcessingTools.space_signal import SpatialSignal
+from SignalProcessingTools.space_signal import SpaceSignalProcessing
 from SignalProcessingTools.space_signal import EN13848
 
 # Create test data
