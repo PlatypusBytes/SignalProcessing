@@ -29,7 +29,7 @@ class SpaceSignalProcessing:
 
         # acquisition frequency
         if Fs is None:
-            self.fs = int(np.ceil(1 / np.mean(np.diff(x))))
+            self.fs = (1 / np.mean(np.diff(x)))
 
         else:
             self.fs = Fs
@@ -126,19 +126,18 @@ class SpaceSignalProcessing:
 
         # convert the signal from m to mm
         if convert_m2mm:
-            self.signal = self.signal_raw * 1000
+            signal = self.signal_raw * 1000
 
         # compute the power spectral density
         n_fft = int(
-            np.max([2**(np.ceil(np.log2(len(self.signal)))), nb_fft_min]))
+            np.max([2**(np.ceil(np.log2(len(signal)))), nb_fft_min]))
         # if signal is odd length, add a zero to make it even
-        if len(self.signal) % 2 != 0:
-            signal = np.append(self.signal, 0)
+        if len(signal) % 2 != 0:
+            signal = np.append(signal, 0)
             coordinates = np.append(
                 self.coordinates, self.coordinates[-1] +
                 (self.coordinates[1] - self.coordinates[0]))
         else:
-            signal = self.signal
             coordinates = self.coordinates
         sig = TimeSignalProcessing(coordinates,
                                    signal,
@@ -151,7 +150,7 @@ class SpaceSignalProcessing:
         self.__rms_effective(sig.frequency_Pxx, sig.Pxx,
                              one_third_octave_bands, derivative)
         # compute the effective values
-        self.__effective_values(one_third_octave_bands, derivative)
+        self.__effective_values(signal, one_third_octave_bands, derivative)
 
     def __rms_effective(self, frequency: npt.NDArray[np.float64],
                         Pxx: npt.NDArray[np.float64],
@@ -178,7 +177,8 @@ class SpaceSignalProcessing:
                                                       derivative[i]) * Pxx[idx]
             self.rms_bands[i] = np.sqrt(np.sum(Pxx[idx] * delta_f))
 
-    def __effective_values(self, one_third_octave_bands: List[Tuple[float,
+    def __effective_values(self, signal: npt.NDArray[np.float64],
+                           one_third_octave_bands: List[Tuple[float,
                                                                     float]],
                            derivative: List[int]):
         """
@@ -186,6 +186,7 @@ class SpaceSignalProcessing:
 
         Parameters
         ----------
+        :param signal (npt.NDArray[np.float64]): time-domain signal
         :param one_third_octave_bands (List[Tuple[float, float]]): frequency bands
         :param derivative (List[int]): derivative order
         """
@@ -200,7 +201,7 @@ class SpaceSignalProcessing:
         for i, band in enumerate(one_third_octave_bands):
             derivative_value = derivative[i]
             sig = TimeSignalProcessing(self.coordinates,
-                                       self.signal,
+                                       signal,
                                        Fs=self.fs)
             sig.filter(np.array(band),
                        N=3,
@@ -212,13 +213,14 @@ class SpaceSignalProcessing:
                 new_signal = np.diff(new_signal) / dx
                 derivative_value -= 1
 
-            ksi = np.linspace(0, n * tau, int(n * tau / dx + 1))
+            # ksi = np.linspace(0, n * tau, int(n * tau / dx + 1))
+            ksi = np.arange(0, n*tau + dx/2, dx)
             g = fout * np.exp(-ksi / tau)
 
             convoluted_signal = np.sqrt(
                 np.convolve(new_signal**2, g) * dx / tau)
             self.max_fast[i] = np.max(convoluted_signal)
-            idx = np.floor((len(self.signal) - np.floor(self.DXmaxFast / dx)) / 2) + \
+            idx = np.floor((len(signal) - np.floor(self.DXmaxFast / dx)) / 2) + \
                   np.linspace(0, np.floor(self.DXmaxFast / dx)-1, int(np.floor(self.DXmaxFast / dx)))
 
             self.max_fast_Dx[i] = np.max(convoluted_signal[idx.astype(int)])
