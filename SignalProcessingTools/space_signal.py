@@ -43,6 +43,7 @@ class SpaceSignalProcessing:
         self.rms_bands = None
         self.max_fast = None
         self.max_fast_Dx = None
+        self.one_third_octave_bands = None
 
     def compute_track_longitudinal_levels(self):
         """
@@ -99,7 +100,7 @@ class SpaceSignalProcessing:
         """
 
         # octave bands used for the processing
-        one_third_octave_bands = [
+        self.one_third_octave_bands = [
             [.08, .10],
             [.10, .126],
             [.126, .16],
@@ -118,11 +119,11 @@ class SpaceSignalProcessing:
                       2]  # number of times that each frequency band is derived
 
         # RMS of the square root of the power spectral density
-        self.rms_bands = np.zeros(len(one_third_octave_bands))
+        self.rms_bands = np.zeros(len(self.one_third_octave_bands))
         # maximum effective value over the entire signal
-        self.max_fast = np.zeros(len(one_third_octave_bands))
+        self.max_fast = np.zeros(len(self.one_third_octave_bands))
         # maximum effective value over the length Dx
-        self.max_fast_Dx = np.zeros(len(one_third_octave_bands))
+        self.max_fast_Dx = np.zeros(len(self.one_third_octave_bands))
 
         # convert the signal from m to mm
         if convert_m2mm:
@@ -148,13 +149,12 @@ class SpaceSignalProcessing:
 
         # compute the rsm psd
         self.__rms_effective(sig.frequency_Pxx, sig.Pxx,
-                             one_third_octave_bands, derivative)
+                             derivative)
         # compute the effective values
-        self.__effective_values(signal, one_third_octave_bands, derivative)
+        self.__effective_values(signal, derivative)
 
     def __rms_effective(self, frequency: npt.NDArray[np.float64],
                         Pxx: npt.NDArray[np.float64],
-                        one_third_octave_bands: List[Tuple[float, float]],
                         derivative: List[int]):
         """
         Computes RMS square root of power spectral density
@@ -170,7 +170,7 @@ class SpaceSignalProcessing:
         delta_f = frequency[1] - frequency[0]
 
         # compute the rms value at each frequency band
-        for i, band in enumerate(one_third_octave_bands):
+        for i, band in enumerate(self.one_third_octave_bands):
             # find indexes where the bands exist
             idx = np.where((frequency >= band[0]) & (frequency < band[1]))[0]
             Pxx[idx] = (2 * np.pi * frequency[idx])**(2 *
@@ -178,8 +178,6 @@ class SpaceSignalProcessing:
             self.rms_bands[i] = np.sqrt(np.sum(Pxx[idx] * delta_f))
 
     def __effective_values(self, signal: npt.NDArray[np.float64],
-                           one_third_octave_bands: List[Tuple[float,
-                                                                    float]],
                            derivative: List[int]):
         """
         Computes the effective values of the signal
@@ -187,7 +185,6 @@ class SpaceSignalProcessing:
         Parameters
         ----------
         :param signal (npt.NDArray[np.float64]): time-domain signal
-        :param one_third_octave_bands (List[Tuple[float, float]]): frequency bands
         :param derivative (List[int]): derivative order
         """
 
@@ -198,7 +195,7 @@ class SpaceSignalProcessing:
 
         dx = self.coordinates[1] - self.coordinates[0]
 
-        for i, band in enumerate(one_third_octave_bands):
+        for i, band in enumerate(self.one_third_octave_bands):
             derivative_value = derivative[i]
             sig = TimeSignalProcessing(self.coordinates,
                                        signal,
